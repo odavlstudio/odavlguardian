@@ -1,24 +1,24 @@
-const { cannotReadNullUndefined } = require('./runtime/cannot-read-null-undefined');
-const { isNotAFunction } = require('./runtime/is-not-a-function');
-const { isNotIterable } = require('./runtime/is-not-iterable');
-const { unexpectedTokenRuntime } = require('./runtime/unexpected-token');
-const { maximumCallStack } = require('./runtime/maximum-call-stack');
+const { cannotReadNullUndefined } = require('./runtime/cannot-read-null-undefined.js');
+const { isNotAFunction } = require('./runtime/is-not-a-function.js');
+const { isNotIterable } = require('./runtime/is-not-iterable.js');
+const { unexpectedTokenRuntime } = require('./runtime/unexpected-token.js');
+const { maximumCallStack } = require('./runtime/maximum-call-stack.js');
 
-const { moduleNotFoundBuild } = require('./build/module-not-found');
-const { cannotFindModuleLiteral } = require('./build/cannot-find-module-literal');
-const { ts2307CannotFindModule } = require('./build/ts2307');
-const { failedToCompileLoader } = require('./build/failed-to-compile');
+const { moduleNotFoundBuild } = require('./build/module-not-found.js');
+const { cannotFindModuleLiteral } = require('./build/cannot-find-module-literal.js');
+const { ts2307CannotFindModule } = require('./build/ts2307.js');
+const { failedToCompileLoader } = require('./build/failed-to-compile.js');
 
-const { invalidHookCall } = require('./react/invalid-hook-call');
-const { tooManyReRenders } = require('./react/too-many-rerenders');
-const { objectNotValidChild } = require('./react/object-not-valid-child');
-const { cannotUpdateDuringRender } = require('./react/cannot-update-during-render');
-const { useEffectDepsIssue } = require('./react/useeffect-deps');
+const { invalidHookCall } = require('./react/invalid-hook-call.js');
+const { tooManyReRenders } = require('./react/too-many-rerenders.js');
+const { objectNotValidChild } = require('./react/object-not-valid-child.js');
+const { cannotUpdateDuringRender } = require('./react/cannot-update-during-render.js');
+const { useEffectDepsIssue } = require('./react/useeffect-deps.js');
 
-const { processEnvMissing } = require('./node/process-env-missing');
-const { eaddrinuse } = require('./node/eaddrinuse');
-const { importOutsideModule } = require('./node/import-outside-module');
-const { requireNotDefined } = require('./node/require-not-defined');
+const { processEnvMissing } = require('./node/process-env-missing.js');
+const { eaddrinuse } = require('./node/eaddrinuse.js');
+const { importOutsideModule } = require('./node/import-outside-module.js');
+const { requireNotDefined } = require('./node/require-not-defined.js');
 
 const signatures = [
   // Runtime
