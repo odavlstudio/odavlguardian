@@ -337,6 +337,20 @@ app.get('/api/feedback/stats', (req, res) => {
 const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir));
 
+// Explicit sitemap.xml route to ensure correct Content-Type for Google indexing
+app.get('/sitemap.xml', (req, res) => {
+  const sitemapPath = path.join(publicDir, 'sitemap.xml');
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.sendFile(sitemapPath, (err) => {
+    if (err && err.code === 'ENOENT') {
+      res.status(404).send('Sitemap not found');
+    } else if (err) {
+      console.error('Sitemap serving error:', err);
+      res.status(500).send('Internal error');
+    }
+  });
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
