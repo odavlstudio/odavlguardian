@@ -4,10 +4,7 @@ const { isNotIterable } = require('./runtime/is-not-iterable.js');
 const { unexpectedTokenRuntime } = require('./runtime/unexpected-token.js');
 const { maximumCallStack } = require('./runtime/maximum-call-stack.js');
 
-const { moduleNotFoundBuild } = require('./build/module-not-found.js');
-const { cannotFindModuleLiteral } = require('./build/cannot-find-module-literal.js');
-const { ts2307CannotFindModule } = require('./build/ts2307.js');
-const { failedToCompileLoader } = require('./build/failed-to-compile.js');
+// NOTE: Removed build/* requires to prevent production crash on missing modules
 
 const { invalidHookCall } = require('./react/invalid-hook-call.js');
 const { tooManyReRenders } = require('./react/too-many-rerenders.js');
@@ -27,11 +24,7 @@ const signatures = [
   isNotIterable,
   unexpectedTokenRuntime,
   maximumCallStack,
-  // Build/Tooling
-  moduleNotFoundBuild,
-  cannotFindModuleLiteral,
-  ts2307CannotFindModule,
-  failedToCompileLoader,
+  // Build/Tooling (temporarily disabled in production due to missing modules)
   // React
   invalidHookCall,
   tooManyReRenders,
