@@ -33,7 +33,8 @@ body {
 }
 .hero__content { max-width: 1000px; margin: 0 auto; }
 .hero h1 { margin: 0 0 6px; font-size: 32px; letter-spacing: -0.5px; }
-.hero p { margin: 0; color: var(--muted); }
+.hero__subtitle { margin: 0 0 4px; color: var(--text); font-size: 18px; font-weight: 500; }
+.hero__secondary { margin: 0; color: var(--muted); font-size: 14px; }
 
 .pro-status { margin-top: 10px; }
 .pro-badge {
@@ -92,6 +93,31 @@ textarea {
 }
 textarea:focus { outline: 2px solid var(--accent); }
 
+.onboarding-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+.onboarding-hint.hidden {
+  display: none;
+}
+.hint-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+.hint-text {
+  line-height: 1.4;
+}
+
 .input-actions {
   display: flex;
   justify-content: space-between;
@@ -136,6 +162,41 @@ button.ghost:hover { border-color: var(--accent); color: var(--accent); }
   gap: 10px;
 }
 .results-body { margin-top: 14px; display: grid; gap: 12px; }
+
+.trust-section {
+  display: none;
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+.trust-section h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.trust-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.trust-list li {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  padding-left: 16px;
+  position: relative;
+}
+.trust-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--success);
+  font-weight: 600;
+}
 
 .section { border-top: 1px solid var(--border); padding-top: 10px; }
 .section:first-of-type { border-top: none; padding-top: 0; }
@@ -244,6 +305,8 @@ button.pro-only { display: none; }
 }
 
 @media (max-width: 640px) {
+  .hero h1 { font-size: 26px; }
+  .hero__subtitle { font-size: 16px; }
   .results-header { flex-direction: column; align-items: flex-start; }
   .input-actions { flex-direction: column; align-items: flex-start; gap: 8px; }
   button { width: 100%; }

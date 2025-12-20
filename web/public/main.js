@@ -12,6 +12,7 @@ const feedbackSection = document.getElementById('feedbackSection');
 const feedbackWorkedBtn = document.getElementById('feedbackWorked');
 const feedbackDidntWorkBtn = document.getElementById('feedbackDidntWork');
 const feedbackMessage = document.getElementById('feedbackMessage');
+const onboardingHint = document.getElementById('onboardingHint');
 
 const MAX_INPUT_CHARS = 20000;
 const PRO_TOKEN_KEY = 'doctorErrorProToken';
@@ -55,6 +56,21 @@ function clearResults() {
   resultSubtitle.textContent = '';
   currentDiagnosis = null;
   hideFeedback();
+  hideTrustSection();
+}
+
+function showTrustSection() {
+  const trustSection = document.getElementById('trustSection');
+  if (trustSection) {
+    trustSection.style.display = 'block';
+  }
+}
+
+function hideTrustSection() {
+  const trustSection = document.getElementById('trustSection');
+  if (trustSection) {
+    trustSection.style.display = 'none';
+  }
 }
 
 function showFeedback() {
@@ -204,6 +220,7 @@ function renderDiagnosis(diagnosis) {
 
   resultsBody.replaceChildren(...fragments);
   showFeedback();
+  showTrustSection();
 }
 
 async function handleDiagnose() {
@@ -367,6 +384,15 @@ diagnoseButton.addEventListener('click', handleDiagnose);
 errorInput.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'enter') {
     handleDiagnose();
+  }
+});
+
+// Onboarding hint: hide when user starts typing
+errorInput.addEventListener('input', () => {
+  if (errorInput.value.trim().length > 0) {
+    onboardingHint.classList.add('hidden');
+  } else {
+    onboardingHint.classList.remove('hidden');
   }
 });
 

@@ -3,14 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Doctor Error</title>
+  <meta name="description" content="Doctor Error diagnoses JavaScript and TypeScript errors with ranked causes, confidence scores, and fix paths. Get real solutions, not guesses." />
+  <meta property="og:title" content="Doctor Error - JavaScript & TypeScript Error Diagnosis" />
+  <meta property="og:description" content="Paste a JS/TS error. Get a diagnosis with ranked causes, confidence scores, and actionable fix paths." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Doctor Error - JavaScript & TypeScript Error Diagnosis</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="hero">
     <div class="hero__content">
       <h1>Doctor Error</h1>
-      <p>Paste a JS/TS error and get a diagnosis with actionable fixes.</p>
+      <p class="hero__subtitle">Paste a JavaScript error. Get a real diagnosis — not guesses.</p>
+      <p class="hero__secondary">Deterministic analysis. Ranked causes. Actionable fix paths.</p>
       <div id="proStatus" class="pro-status"></div>
     </div>
   </header>
@@ -18,6 +24,10 @@
     <section class="card input-card">
       <label for="errorInput">Paste your error</label>
       <textarea id="errorInput" placeholder="TypeError: Cannot read properties of undefined (reading 'map')" maxlength="20000"></textarea>
+      <div class="onboarding-hint" id="onboardingHint">
+        <span class="hint-icon">💡</span>
+        <span class="hint-text">Paste any JavaScript or TypeScript error message. Runtime errors, build failures, React warnings—Doctor Error handles them all.</span>
+      </div>
       <div class="input-actions">
         <span id="statusMessage" class="status"></span>
         <button id="diagnoseButton">Diagnose</button>
@@ -46,6 +56,14 @@
           <button id="feedbackDidntWork" class="feedback-btn feedback-btn--danger">✗ Didn't work</button>
         </div>
         <div id="feedbackMessage" class="feedback-message"></div>
+      </div>
+      <div id="trustSection" class="trust-section">
+        <h3>Why trust this diagnosis?</h3>
+        <ul class="trust-list">
+          <li><strong>Deterministic rules.</strong> No AI guessing—every diagnosis is based on pattern matching and real-world error signatures.</li>
+          <li><strong>Ranked by confidence.</strong> Each cause includes a confidence score so you know which fix to try first.</li>
+          <li><strong>Proven patterns.</strong> Fix paths are derived from common solutions and verified debugging strategies.</li>
+        </ul>
       </div>
     </section>
   </main>
