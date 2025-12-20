@@ -1,5 +1,5 @@
-const REQUIRED_ENVS = ['STRIPE_SECRET_KEY', 'NODE_ENV'];
-const OPTIONAL_ENVS = { PORT: 3000 };
+const REQUIRED_ENVS = ['NODE_ENV'];
+const OPTIONAL_ENVS = { PORT: 3000, STRIPE_SECRET_KEY: '' };
 
 function getEnv(name, fallback) {
   const value = process.env[name];
@@ -16,18 +16,18 @@ function loadConfig() {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  const STRIPE_SECRET_KEY = getEnv('STRIPE_SECRET_KEY');
   const NODE_ENV = getEnv('NODE_ENV');
   const PORT = parseInt(getEnv('PORT', OPTIONAL_ENVS.PORT), 10);
+  const STRIPE_SECRET_KEY = getEnv('STRIPE_SECRET_KEY', OPTIONAL_ENVS.STRIPE_SECRET_KEY);
 
   if (Number.isNaN(PORT) || PORT <= 0) {
     throw new Error('PORT must be a positive integer');
   }
 
   return {
-    STRIPE_SECRET_KEY,
     NODE_ENV,
-    PORT
+    PORT,
+    STRIPE_SECRET_KEY
   };
 }
 

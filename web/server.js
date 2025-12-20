@@ -17,10 +17,12 @@ const MAX_SIGNATURE_LENGTH = 140;
 const MAX_TITLE_LENGTH = 80;
 
 let stripe = null;
-try {
-  stripe = require('stripe')(STRIPE_SECRET_KEY);
-} catch (err) {
-  throw new Error('Stripe initialization failed. Check STRIPE_SECRET_KEY.');
+if (STRIPE_SECRET_KEY) {
+  try {
+    stripe = require('stripe')(STRIPE_SECRET_KEY);
+  } catch (err) {
+    console.warn('Stripe initialization skipped (key not configured)');
+  }
 }
 
 const dataDir = path.join(__dirname, '../data');
@@ -100,6 +102,9 @@ app.post('/api/diagnose', (req, res) => {
 });
 
 app.post('/api/checkout', async (req, res) => {
+  if (!STRIPE_SECRET_KEY || !stripe) {
+    return res.status(500).json({ error: 'Stripe not configured. Set STRIPE_SECRET_KEY environment variable.' });
+  }
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
