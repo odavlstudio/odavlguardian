@@ -440,3 +440,30 @@ button.pro-only { display: none; }
   button { width: 100%; }
   button.ghost { width: auto; }
 }
+
+.footer {
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.footer__content {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 13px;
+}
+
+.footer a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer a:hover {
+  color: var(--accent);
+}
+

@@ -368,6 +368,38 @@ app.get('/robots.txt', (req, res) => {
   }
 });
 
+// Explicit privacy route to prevent SPA fallback hijacking
+app.get('/privacy', (req, res) => {
+  try {
+    const privacyPath = path.join(publicDir, 'privacy.html');
+    const html = fs.readFileSync(privacyPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(html);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return res.status(404).send('Privacy page not found');
+    }
+    console.error('Privacy page serving error:', err);
+    return res.status(500).send('Internal error');
+  }
+});
+
+// Explicit terms route to prevent SPA fallback hijacking
+app.get('/terms', (req, res) => {
+  try {
+    const termsPath = path.join(publicDir, 'terms.html');
+    const html = fs.readFileSync(termsPath, 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(html);
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return res.status(404).send('Terms page not found');
+    }
+    console.error('Terms page serving error:', err);
+    return res.status(500).send('Internal error');
+  }
+});
+
 app.use(express.static(publicDir));
 
 app.get('*', (req, res) => {
