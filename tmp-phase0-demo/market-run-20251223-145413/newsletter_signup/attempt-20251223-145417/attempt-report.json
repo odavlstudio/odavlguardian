@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-145418",
+  "timestamp": "2025-12-23T14:54:18.281Z",
+  "attemptId": "newsletter_signup",
+  "baseUrl": "http://127.0.0.1:3001?mode=ok",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "User signs up for newsletter",
+    "startedAt": "2025-12-23T14:54:17.730Z",
+    "endedAt": "2025-12-23T14:54:18.017Z",
+    "durationMs": 287
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "http://127.0.0.1:3001?mode=ok",
+      "description": "Navigate to home page",
+      "startedAt": "2025-12-23T14:54:17.730Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "navigate_home.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:17.740Z",
+      "durationMs": 10
+    },
+    {
+      "index": 2,
+      "id": "open_signup_page",
+      "type": "click",
+      "target": "a[data-guardian=\"signup-link\"], a[data-testid=\"signup-link\"], a:has-text(\"Sign up\"), a:has-text(\"Signup\"), a[href*=\"signup\"], a[href*=\"newsletter\"]",
+      "description": "Open signup page",
+      "startedAt": "2025-12-23T14:54:17.787Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "open_signup_page.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:17.832Z",
+      "durationMs": 45
+    },
+    {
+      "index": 3,
+      "id": "fill_email",
+      "type": "type",
+      "target": "input[type=\"email\"], input[data-guardian=\"signup-email\"], input[data-testid=\"signup-email\"]",
+      "description": "Enter email",
+      "startedAt": "2025-12-23T14:54:17.881Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_email.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:17.892Z",
+      "durationMs": 11
+    },
+    {
+      "index": 4,
+      "id": "submit_signup",
+      "type": "click",
+      "target": "button[type=\"submit\"], button[data-guardian=\"signup-submit\"], button:has-text(\"Subscribe\"), button:has-text(\"Sign up\")",
+      "description": "Submit signup",
+      "startedAt": "2025-12-23T14:54:17.938Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "submit_signup.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:17.970Z",
+      "durationMs": 32
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {
+      "totalDurationMs": 287,
+      "stepCount": 4,
+      "totalRetries": 0,
+      "maxStepDurationMs": 45
+    }
+  },
+  "error": null,
+  "successReason": "Success element visible: [data-guardian=\"signup-success\"], [data-testid=\"signup-success\"]",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

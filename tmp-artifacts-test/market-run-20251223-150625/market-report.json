@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "runId": "market-run-20251223-150625",
+  "timestamp": "2025-12-23T15:06:26.978Z",
+  "baseUrl": "http://127.0.0.1:0",
+  "attemptsRun": [
+    "signup",
+    "login",
+    "checkout"
+  ],
+  "summary": {
+    "successCount": 0,
+    "frictionCount": 0,
+    "failureCount": 3,
+    "overallVerdict": "FAILURE"
+  },
+  "results": [
+    {
+      "attemptId": "signup",
+      "attemptName": "Account Signup",
+      "goal": "User creates an account successfully",
+      "outcome": "FAILURE",
+      "exitCode": 1,
+      "totalDurationMs": 374,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      },
+      "steps": [],
+      "reportJsonPath": "tmp-artifacts-test\\market-run-20251223-150625\\signup\\attempt-20251223-150625\\attempt-report.json",
+      "reportHtmlPath": "tmp-artifacts-test\\market-run-20251223-150625\\signup\\attempt-20251223-150625\\attempt-report.html"
+    },
+    {
+      "attemptId": "login",
+      "attemptName": "Account Login",
+      "goal": "User logs in successfully (single session)",
+      "outcome": "FAILURE",
+      "exitCode": 1,
+      "totalDurationMs": 361,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      },
+      "steps": [],
+      "reportJsonPath": "tmp-artifacts-test\\market-run-20251223-150625\\login\\attempt-20251223-150625\\attempt-report.json",
+      "reportHtmlPath": "tmp-artifacts-test\\market-run-20251223-150625\\login\\attempt-20251223-150625\\attempt-report.html"
+    },
+    {
+      "attemptId": "checkout",
+      "attemptName": "Checkout Review",
+      "goal": "User places order without payment",
+      "outcome": "FAILURE",
+      "exitCode": 1,
+      "totalDurationMs": 337,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      },
+      "steps": [],
+      "reportJsonPath": "tmp-artifacts-test\\market-run-20251223-150625\\checkout\\attempt-20251223-150626\\attempt-report.json",
+      "reportHtmlPath": "tmp-artifacts-test\\market-run-20251223-150625\\checkout\\attempt-20251223-150626\\attempt-report.html"
+    }
+  ]
+}

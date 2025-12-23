@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-150626",
+  "timestamp": "2025-12-23T15:06:26.888Z",
+  "attemptId": "checkout",
+  "baseUrl": "http://127.0.0.1:0",
+  "outcome": "FAILURE",
+  "meta": {
+    "goal": "Complete user attempt",
+    "startedAt": "2025-12-23T15:06:26.542Z",
+    "endedAt": "2025-12-23T15:06:26.879Z",
+    "durationMs": 337
+  },
+  "steps": [],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+  "successReason": null,
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

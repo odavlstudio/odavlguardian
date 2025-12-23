@@ -1,0 +1,135 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-151055",
+  "timestamp": "2025-12-23T15:10:55.686Z",
+  "attemptId": "login",
+  "baseUrl": "http://127.0.0.1:64672?mode=ok",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "Complete user attempt",
+    "startedAt": "2025-12-23T15:10:55.114Z",
+    "endedAt": "2025-12-23T15:10:55.664Z",
+    "durationMs": 550
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "http://127.0.0.1:64672?mode=ok",
+      "description": "Navigate to home page",
+      "startedAt": "2025-12-23T15:10:55.114Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "navigate_home.jpeg"
+      ],
+      "endedAt": "2025-12-23T15:10:55.124Z",
+      "durationMs": 10
+    },
+    {
+      "index": 2,
+      "id": "open_login_page",
+      "type": "click",
+      "target": "a[data-guardian=\"account-login-link\"], a:has-text(\"Login\"), a[href*=\"login\"]",
+      "description": "Open login page",
+      "startedAt": "2025-12-23T15:10:55.192Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "open_login_page.jpeg"
+      ],
+      "endedAt": "2025-12-23T15:10:55.213Z",
+      "durationMs": 21
+    },
+    {
+      "index": 3,
+      "id": "fill_login_email",
+      "type": "type",
+      "target": "[data-guardian=\"login-email\"]",
+      "description": "Enter login email",
+      "startedAt": "2025-12-23T15:10:55.253Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_login_email.jpeg"
+      ],
+      "endedAt": "2025-12-23T15:10:55.262Z",
+      "durationMs": 9
+    },
+    {
+      "index": 4,
+      "id": "fill_login_password",
+      "type": "type",
+      "target": "[data-guardian=\"login-password\"]",
+      "description": "Enter login password",
+      "startedAt": "2025-12-23T15:10:55.316Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_login_password.jpeg"
+      ],
+      "endedAt": "2025-12-23T15:10:55.323Z",
+      "durationMs": 7
+    },
+    {
+      "index": 5,
+      "id": "submit_login",
+      "type": "click",
+      "target": "[data-guardian=\"login-submit\"], button:has-text(\"Login\")",
+      "description": "Submit login",
+      "startedAt": "2025-12-23T15:10:55.352Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "submit_login.jpeg"
+      ],
+      "endedAt": "2025-12-23T15:10:55.393Z",
+      "durationMs": 41
+    },
+    {
+      "index": 6,
+      "id": "wait_login_success",
+      "type": "waitFor",
+      "target": "[data-guardian=\"login-success\"]",
+      "description": "Wait for login success",
+      "startedAt": "2025-12-23T15:10:55.445Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "wait_login_success.jpeg"
+      ],
+      "endedAt": "2025-12-23T15:10:55.594Z",
+      "durationMs": 149
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {
+      "totalDurationMs": 550,
+      "stepCount": 6,
+      "totalRetries": 0,
+      "maxStepDurationMs": 149
+    }
+  },
+  "error": null,
+  "successReason": "Success element visible: [data-guardian=\"login-success\"]",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

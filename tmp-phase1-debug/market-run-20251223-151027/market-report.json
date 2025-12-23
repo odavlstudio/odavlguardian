@@ -1,0 +1,346 @@
+{
+  "version": "1.0.0",
+  "runId": "market-run-20251223-151027",
+  "timestamp": "2025-12-23T15:10:29.518Z",
+  "baseUrl": "http://127.0.0.1:52496?mode=ok",
+  "attemptsRun": [
+    "signup",
+    "login",
+    "checkout"
+  ],
+  "summary": {
+    "successCount": 3,
+    "frictionCount": 0,
+    "failureCount": 0,
+    "overallVerdict": "SUCCESS"
+  },
+  "results": [
+    {
+      "attemptId": "signup",
+      "attemptName": "Account Signup",
+      "goal": "User creates an account successfully",
+      "outcome": "SUCCESS",
+      "exitCode": 0,
+      "totalDurationMs": 733,
+      "friction": {
+        "isFriction": false,
+        "signals": [],
+        "summary": null,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {
+          "totalDurationMs": 733,
+          "stepCount": 6,
+          "totalRetries": 0,
+          "maxStepDurationMs": 358
+        }
+      },
+      "steps": [
+        {
+          "id": "navigate_home",
+          "type": "navigate",
+          "target": "http://127.0.0.1:52496?mode=ok",
+          "description": "Navigate to home page",
+          "startedAt": "2025-12-23T15:10:27.246Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "navigate_home.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:27.261Z",
+          "durationMs": 15
+        },
+        {
+          "id": "open_account_signup",
+          "type": "click",
+          "target": "a[data-guardian=\"account-signup-link\"], a:has-text(\"Account Signup\")",
+          "description": "Open account signup",
+          "startedAt": "2025-12-23T15:10:27.317Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "open_account_signup.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:27.353Z",
+          "durationMs": 36
+        },
+        {
+          "id": "fill_signup_email",
+          "type": "type",
+          "target": "[data-guardian=\"signup-email\"]",
+          "description": "Enter signup email",
+          "startedAt": "2025-12-23T15:10:27.381Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "fill_signup_email.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:27.390Z",
+          "durationMs": 9
+        },
+        {
+          "id": "fill_signup_password",
+          "type": "type",
+          "target": "[data-guardian=\"signup-password\"]",
+          "description": "Enter signup password",
+          "startedAt": "2025-12-23T15:10:27.426Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "fill_signup_password.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:27.440Z",
+          "durationMs": 14
+        },
+        {
+          "id": "submit_signup_account",
+          "type": "click",
+          "target": "[data-guardian=\"signup-account-submit\"], button:has-text(\"Sign up\")",
+          "description": "Submit account signup",
+          "startedAt": "2025-12-23T15:10:27.465Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "submit_signup_account.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:27.509Z",
+          "durationMs": 44
+        },
+        {
+          "id": "wait_signup_success",
+          "type": "waitFor",
+          "target": "[data-guardian=\"signup-account-success\"]",
+          "description": "Wait for signup success",
+          "startedAt": "2025-12-23T15:10:27.542Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "wait_signup_success.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:27.900Z",
+          "durationMs": 358
+        }
+      ],
+      "reportJsonPath": "tmp-phase1-debug\\market-run-20251223-151027\\signup\\attempt-20251223-151027\\attempt-report.json",
+      "reportHtmlPath": "tmp-phase1-debug\\market-run-20251223-151027\\signup\\attempt-20251223-151027\\attempt-report.html"
+    },
+    {
+      "attemptId": "login",
+      "attemptName": "Account Login",
+      "goal": "User logs in successfully (single session)",
+      "outcome": "SUCCESS",
+      "exitCode": 0,
+      "totalDurationMs": 509,
+      "friction": {
+        "isFriction": false,
+        "signals": [],
+        "summary": null,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {
+          "totalDurationMs": 509,
+          "stepCount": 6,
+          "totalRetries": 0,
+          "maxStepDurationMs": 119
+        }
+      },
+      "steps": [
+        {
+          "id": "navigate_home",
+          "type": "navigate",
+          "target": "http://127.0.0.1:52496?mode=ok",
+          "description": "Navigate to home page",
+          "startedAt": "2025-12-23T15:10:28.201Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "navigate_home.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:28.215Z",
+          "durationMs": 14
+        },
+        {
+          "id": "open_login_page",
+          "type": "click",
+          "target": "a[data-guardian=\"account-login-link\"], a:has-text(\"Login\"), a[href*=\"login\"]",
+          "description": "Open login page",
+          "startedAt": "2025-12-23T15:10:28.267Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "open_login_page.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:28.307Z",
+          "durationMs": 40
+        },
+        {
+          "id": "fill_login_email",
+          "type": "type",
+          "target": "[data-guardian=\"login-email\"]",
+          "description": "Enter login email",
+          "startedAt": "2025-12-23T15:10:28.359Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "fill_login_email.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:28.374Z",
+          "durationMs": 15
+        },
+        {
+          "id": "fill_login_password",
+          "type": "type",
+          "target": "[data-guardian=\"login-password\"]",
+          "description": "Enter login password",
+          "startedAt": "2025-12-23T15:10:28.412Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "fill_login_password.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:28.422Z",
+          "durationMs": 10
+        },
+        {
+          "id": "submit_login",
+          "type": "click",
+          "target": "[data-guardian=\"login-submit\"], button:has-text(\"Login\")",
+          "description": "Submit login",
+          "startedAt": "2025-12-23T15:10:28.459Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "submit_login.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:28.497Z",
+          "durationMs": 38
+        },
+        {
+          "id": "wait_login_success",
+          "type": "waitFor",
+          "target": "[data-guardian=\"login-success\"]",
+          "description": "Wait for login success",
+          "startedAt": "2025-12-23T15:10:28.533Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "wait_login_success.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:28.652Z",
+          "durationMs": 119
+        }
+      ],
+      "reportJsonPath": "tmp-phase1-debug\\market-run-20251223-151027\\login\\attempt-20251223-151028\\attempt-report.json",
+      "reportHtmlPath": "tmp-phase1-debug\\market-run-20251223-151027\\login\\attempt-20251223-151028\\attempt-report.html"
+    },
+    {
+      "attemptId": "checkout",
+      "attemptName": "Checkout Review",
+      "goal": "User places order without payment",
+      "outcome": "SUCCESS",
+      "exitCode": 0,
+      "totalDurationMs": 402,
+      "friction": {
+        "isFriction": false,
+        "signals": [],
+        "summary": null,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {
+          "totalDurationMs": 402,
+          "stepCount": 4,
+          "totalRetries": 0,
+          "maxStepDurationMs": 126
+        }
+      },
+      "steps": [
+        {
+          "id": "navigate_home",
+          "type": "navigate",
+          "target": "http://127.0.0.1:52496?mode=ok",
+          "description": "Navigate to home page",
+          "startedAt": "2025-12-23T15:10:29.014Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "navigate_home.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:29.030Z",
+          "durationMs": 16
+        },
+        {
+          "id": "open_checkout",
+          "type": "click",
+          "target": "a[data-guardian=\"checkout-link\"], a:has-text(\"Checkout\"), a[href*=\"checkout\"]",
+          "description": "Open checkout page",
+          "startedAt": "2025-12-23T15:10:29.086Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "open_checkout.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:29.118Z",
+          "durationMs": 32
+        },
+        {
+          "id": "place_order",
+          "type": "click",
+          "target": "[data-guardian=\"checkout-place-order\"], button:has-text(\"Place order\"), button:has-text(\"Place Order\")",
+          "description": "Place order",
+          "startedAt": "2025-12-23T15:10:29.169Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "place_order.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:29.195Z",
+          "durationMs": 26
+        },
+        {
+          "id": "wait_order_success",
+          "type": "waitFor",
+          "target": "[data-guardian=\"checkout-success\"]",
+          "description": "Wait for order confirmation",
+          "startedAt": "2025-12-23T15:10:29.241Z",
+          "retries": 0,
+          "status": "success",
+          "error": null,
+          "screenshots": [
+            "wait_order_success.jpeg"
+          ],
+          "endedAt": "2025-12-23T15:10:29.367Z",
+          "durationMs": 126
+        }
+      ],
+      "reportJsonPath": "tmp-phase1-debug\\market-run-20251223-151027\\checkout\\attempt-20251223-151028\\attempt-report.json",
+      "reportHtmlPath": "tmp-phase1-debug\\market-run-20251223-151027\\checkout\\attempt-20251223-151028\\attempt-report.html"
+    }
+  ]
+}

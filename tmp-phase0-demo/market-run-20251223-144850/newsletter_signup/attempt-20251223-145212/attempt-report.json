@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-145343",
+  "timestamp": "2025-12-23T14:53:43.242Z",
+  "attemptId": "newsletter_signup",
+  "baseUrl": "http://127.0.0.1:3001?mode=ok",
+  "outcome": "FAILURE",
+  "meta": {
+    "goal": "User signs up for newsletter",
+    "startedAt": "2025-12-23T14:52:12.990Z",
+    "endedAt": "2025-12-23T14:53:43.238Z",
+    "durationMs": 90248
+  },
+  "steps": [],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": "Step \"navigate_home\" failed: page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3001/?mode=ok\", waiting until \"domcontentloaded\"\u001b[22m\n",
+  "successReason": null,
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

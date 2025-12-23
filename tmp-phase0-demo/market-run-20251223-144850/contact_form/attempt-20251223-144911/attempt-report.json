@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-145041",
+  "timestamp": "2025-12-23T14:50:41.895Z",
+  "attemptId": "contact_form",
+  "baseUrl": "http://127.0.0.1:3001?mode=ok",
+  "outcome": "FAILURE",
+  "meta": {
+    "goal": "User submits a contact form successfully",
+    "startedAt": "2025-12-23T14:49:11.618Z",
+    "endedAt": "2025-12-23T14:50:41.892Z",
+    "durationMs": 90274
+  },
+  "steps": [],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": "Step \"navigate_form\" failed: page.goto: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3001/?mode=ok\", waiting until \"domcontentloaded\"\u001b[22m\n",
+  "successReason": null,
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

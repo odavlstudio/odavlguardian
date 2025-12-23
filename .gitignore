@@ -8,3 +8,9 @@ build/
 coverage/
 .nyc_output/
 *.log
+
+# Guardian artifacts
+artifacts/
+test-artifacts/
+.odavl-guardian/
+tmp-artifacts/

@@ -1,0 +1,64 @@
+name: ODAVL Guardian Regression Gate
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  guardian-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Option A: Use fixture server for demonstration
+      - name: Start fixture server
+        run: |
+          node test/start-fixture.js 3000 &
+          echo $! > fixture_pid
+          sleep 2
+
+      # Option B: Use staging URL
+      # env:
+      #   GUARDIAN_BASE_URL: ${{ secrets.STAGING_URL }}
+      # run: echo "Using staging URL: $GUARDIAN_BASE_URL"
+
+      - name: Run baseline check
+        run: |
+          mkdir -p artifacts junit guardian-baselines
+          # Ensure baseline is present (committed or previously created)
+          # Example: committed baseline file under guardian-baselines/ok-baseline.json
+          node bin/guardian.js baseline check \
+            --url "http://127.0.0.1:3000?mode=ok" \
+            --name ok-baseline \
+            --baseline-dir guardian-baselines \
+            --artifacts artifacts \
+            --junit junit/guardian.xml
+        continue-on-error: false
+
+      - name: Upload HTML/JSON reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-reports
+          path: artifacts/**/baseline-check-report.*
+
+      - name: Publish JUnit test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Guardian Regression
+          path: junit/guardian.xml
+          reporter: jest-junit
+
+      - name: Stop fixture server
+        if: always()
+        run: |
+          kill $(cat fixture_pid) || true

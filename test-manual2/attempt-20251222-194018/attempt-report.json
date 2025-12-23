@@ -1,0 +1,133 @@
+{
+  "version": "1.0.0",
+  "runId": "20251222-194019",
+  "timestamp": "2025-12-22T19:40:19.319Z",
+  "attemptId": "contact_form",
+  "baseUrl": "http://127.0.0.1:9876?mode=ok",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "User submits a contact form successfully",
+    "startedAt": "2025-12-22T19:40:18.644Z",
+    "endedAt": "2025-12-22T19:40:19.159Z",
+    "durationMs": 515
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "http://127.0.0.1:9876?mode=ok",
+      "description": "Navigate to home page",
+      "startedAt": "2025-12-22T19:40:18.644Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "navigate_home.jpeg"
+      ],
+      "endedAt": "2025-12-22T19:40:18.686Z",
+      "durationMs": 42
+    },
+    {
+      "index": 2,
+      "id": "click_contact",
+      "type": "click",
+      "target": "a[data-testid=\"contact-link\"], a:has-text(\"Contact\"), button:has-text(\"Contact\")",
+      "description": "Click contact link/button",
+      "startedAt": "2025-12-22T19:40:18.755Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "click_contact.jpeg"
+      ],
+      "endedAt": "2025-12-22T19:40:18.843Z",
+      "durationMs": 88
+    },
+    {
+      "index": 3,
+      "id": "fill_name",
+      "type": "type",
+      "target": "input[name=\"name\"], input[data-testid=\"name\"]",
+      "description": "Enter name",
+      "startedAt": "2025-12-22T19:40:18.898Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_name.jpeg"
+      ],
+      "endedAt": "2025-12-22T19:40:18.913Z",
+      "durationMs": 15
+    },
+    {
+      "index": 4,
+      "id": "fill_email",
+      "type": "type",
+      "target": "input[name=\"email\"], input[data-testid=\"email\"], input[type=\"email\"]",
+      "description": "Enter email",
+      "startedAt": "2025-12-22T19:40:18.954Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_email.jpeg"
+      ],
+      "endedAt": "2025-12-22T19:40:18.966Z",
+      "durationMs": 12
+    },
+    {
+      "index": 5,
+      "id": "fill_message",
+      "type": "type",
+      "target": "textarea[name=\"message\"], textarea[data-testid=\"message\"], input[name=\"message\"]",
+      "description": "Enter message",
+      "startedAt": "2025-12-22T19:40:19.001Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_message.jpeg"
+      ],
+      "endedAt": "2025-12-22T19:40:19.012Z",
+      "durationMs": 11
+    },
+    {
+      "index": 6,
+      "id": "submit_form",
+      "type": "click",
+      "target": "button[type=\"submit\"], button:has-text(\"Submit\"), button:has-text(\"Send\")",
+      "description": "Submit form",
+      "startedAt": "2025-12-22T19:40:19.049Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "submit_form.jpeg"
+      ],
+      "endedAt": "2025-12-22T19:40:19.102Z",
+      "durationMs": 53
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {
+      "totalDurationMs": 515,
+      "stepCount": 6,
+      "totalRetries": 0,
+      "maxStepDurationMs": 88
+    }
+  },
+  "error": null,
+  "successReason": "Success element visible: [data-guardian=\"success\"], [data-testid=\"success\"]",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

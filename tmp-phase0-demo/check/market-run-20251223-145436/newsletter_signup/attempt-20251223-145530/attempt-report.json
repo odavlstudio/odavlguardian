@@ -1,0 +1,82 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-145611",
+  "timestamp": "2025-12-23T14:56:11.562Z",
+  "attemptId": "newsletter_signup",
+  "baseUrl": "http://127.0.0.1:3002?mode=fail",
+  "outcome": "FAILURE",
+  "meta": {
+    "goal": "User signs up for newsletter",
+    "startedAt": "2025-12-23T14:55:31.019Z",
+    "endedAt": "2025-12-23T14:56:11.560Z",
+    "durationMs": 40541
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "http://127.0.0.1:3002?mode=fail",
+      "description": "Navigate to home page",
+      "startedAt": "2025-12-23T14:55:31.020Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "navigate_home.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:55:31.035Z",
+      "durationMs": 15
+    },
+    {
+      "index": 2,
+      "id": "open_signup_page",
+      "type": "click",
+      "target": "a[data-guardian=\"signup-link\"], a[data-testid=\"signup-link\"], a:has-text(\"Sign up\"), a:has-text(\"Signup\"), a[href*=\"signup\"], a[href*=\"newsletter\"]",
+      "description": "Open signup page",
+      "startedAt": "2025-12-23T14:55:31.086Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "open_signup_page.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:55:31.130Z",
+      "durationMs": 44
+    },
+    {
+      "index": 3,
+      "id": "fill_email",
+      "type": "type",
+      "target": "input[type=\"email\"], input[data-guardian=\"signup-email\"], input[data-testid=\"signup-email\"]",
+      "description": "Enter email",
+      "startedAt": "2025-12-23T14:55:31.196Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_email.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:55:31.208Z",
+      "durationMs": 12
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": "Step \"submit_signup\" failed: Could not click element: button[type=\"submit\"], button[data-guardian=\"signup-submit\"], button:has-text(\"Subscribe\"), button:has-text(\"Sign up\")",
+  "successReason": null,
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

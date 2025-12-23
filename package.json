@@ -1,15 +1,38 @@
 {
-  "name": "doctor-error",
-  "version": "0.1.0",
+  "name": "odavl-guardian",
+  "version": "0.1.0-rc1",
   "private": true,
-  "description": "Doctor Error CLI and web UI",
-  "main": "web/server.js",
+  "description": "ODAVL Guardian — Market Reality Testing Engine with Visual Diffs, Behavioral Signals, Auto-Discovery, Intelligence, and CI/CD Integration",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "guardian": "bin/guardian.js"
+  },
   "scripts": {
-    "start": "node web/server.js",
-    "dev": "node web/server.js"
+    "test": "node test/mvp.test.js",
+    "test:phase0": "node test/phase0-reality-lock.test.js",
+    "test:phase1": "node test/phase1-baseline-expansion.test.js",
+    "test:phase2": "node test/phase2-auto-attempts.test.js",
+    "test:phase2-old": "node test/phase2.test.js",
+    "test:attempt": "node test/attempt.test.js",
+    "test:reality": "node test/reality.test.js",
+    "test:baseline": "node test/baseline.test.js",
+    "test:baseline:junit": "node test/baseline-junit.test.js",
+    "test:snapshot": "node test/snapshot.test.js",
+    "test:soft-failures": "node test/soft-failures.test.js",
+    "test:criticality": "node test/market-criticality.test.js",
+    "test:discovery": "node test/discovery.test.js",
+    "test:phase5": "node test/phase5.test.js",
+    "test:phase5:visual": "node test/phase5-visual.test.js",
+    "test:phase5:evidence": "node test/phase5-evidence-run.test.js",
+    "test:phase5:all": "node test/phase5-visual.test.js && node test/phase5-evidence-run.test.js",
+    "test:phase6": "node test/phase6.test.js && node test/phase6-product.test.js",
+    "test:all": "node test/phase0-reality-lock.test.js && node test/mvp.test.js && node test/phase2.test.js && node test/attempt.test.js && node test/reality.test.js && node test/baseline.test.js && node test/baseline-junit.test.js && node test/snapshot.test.js && node test/soft-failures.test.js && node test/market-criticality.test.js && node test/discovery.test.js && node test/phase5.test.js && node test/phase5-visual.test.js && node test/phase5-evidence-run.test.js && node test/phase6.test.js",
+    "start": "node bin/guardian.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "stripe": "^14.10.0"
+    "express": "^5.2.1",
+    "playwright": "^1.48.2"
   }
 }

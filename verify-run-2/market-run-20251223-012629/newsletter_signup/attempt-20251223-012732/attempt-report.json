@@ -1,0 +1,50 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-012823",
+  "timestamp": "2025-12-23T01:28:23.044Z",
+  "attemptId": "newsletter_signup",
+  "baseUrl": "https://example.com",
+  "outcome": "FAILURE",
+  "meta": {
+    "goal": "User signs up for newsletter",
+    "startedAt": "2025-12-23T01:27:32.419Z",
+    "endedAt": "2025-12-23T01:28:23.025Z",
+    "durationMs": 50606
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "https://example.com",
+      "description": "Navigate to home page",
+      "startedAt": "2025-12-23T01:27:32.419Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "navigate_home.jpeg"
+      ],
+      "endedAt": "2025-12-23T01:27:32.559Z",
+      "durationMs": 140
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": "Step \"open_signup\" failed: Could not click element: a[data-guardian=\"signup-link\"], a[data-testid=\"signup-link\"], a:has-text(\"Sign up\"), a:has-text(\"Newsletter\"), button:has-text(\"Newsletter\")",
+  "successReason": null,
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baseline Check Report</title>
+  <style>
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial; background:#f6f7fb; color:#1f2937; padding:20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header { background: #111827; color:#fff; padding:20px; border-radius:12px; }
+    .badge { color:#fff; padding:6px 10px; border-radius:999px; font-size:0.85em; }
+    .verdict { display:inline-flex; align-items:center; gap:8px; background:#ef4444; color:#fff; padding:10px 14px; border-radius:999px; font-weight:bold; }
+    table { width:100%; border-collapse:collapse; background:#fff; border-radius:10px; overflow:hidden; margin-top:16px; }
+    th, td { padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; }
+    th { background:#f3f4f6; }
+    tr.details td { background:#fafafa; }
+    details { margin: 6px 0; }
+    .meta { display:flex; gap:16px; color:#e5e7eb; margin-top:8px; font-size:0.95em; }
+  </style>
+  </head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Baseline Check</h1>
+      <div class="verdict">🔴 REGRESSION_FAILURE</div>
+      <div class="meta">
+        <div><strong>Baseline:</strong> cli-baseline</div>
+        <div><strong>URL:</strong> http://127.0.0.1:3002?mode=fail</div>
+        <div><strong>Run ID:</strong> market-run-20251223-145436</div>
+        <div><strong>Time:</strong> 2025-12-23T14:56:11.649Z</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Attempt</th>
+          <th>Baseline</th>
+          <th>Current</th>
+          <th>Regression</th>
+          <th>Δ Duration %</th>
+          <th>Δ Retries</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>1</td>
+          <td>contact_form</td>
+          <td>SUCCESS</td>
+          <td>FAILURE</td>
+          <td><span class="badge" style="background:#ef4444">REGRESSION FAILURE</span></td>
+          <td>9141.69%</td>
+          <td>0</td>
+          <td>
+            <a href="attempt-report.html" target="_blank">Attempt HTML</a>
+             | <a href="attempt-report.json" target="_blank">Attempt JSON</a>
+          </td>
+        </tr>
+        <tr class="details">
+          <td colspan="8">
+            <details>
+              <summary>Details</summary>
+              <div class="detail-content">
+                <p><strong>Regression Reasons:</strong> Baseline was non-failure; current attempt failed.</p>
+                <p><strong>Improvements:</strong> None</p>
+                <p><strong>Friction Delta:</strong> added=[], removed=[], changed=[]</p>
+              </div>
+            </details>
+          </td>
+        </tr>
+      
+        <tr>
+          <td>2</td>
+          <td>language_switch</td>
+          <td>SUCCESS</td>
+          <td>FAILURE</td>
+          <td><span class="badge" style="background:#ef4444">REGRESSION FAILURE</span></td>
+          <td>2098.96%</td>
+          <td>0</td>
+          <td>
+            <a href="attempt-report.html" target="_blank">Attempt HTML</a>
+             | <a href="attempt-report.json" target="_blank">Attempt JSON</a>
+          </td>
+        </tr>
+        <tr class="details">
+          <td colspan="8">
+            <details>
+              <summary>Details</summary>
+              <div class="detail-content">
+                <p><strong>Regression Reasons:</strong> Baseline was non-failure; current attempt failed.</p>
+                <p><strong>Improvements:</strong> None</p>
+                <p><strong>Friction Delta:</strong> added=[], removed=[], changed=[]</p>
+              </div>
+            </details>
+          </td>
+        </tr>
+      
+        <tr>
+          <td>3</td>
+          <td>newsletter_signup</td>
+          <td>SUCCESS</td>
+          <td>FAILURE</td>
+          <td><span class="badge" style="background:#ef4444">REGRESSION FAILURE</span></td>
+          <td>13736.52%</td>
+          <td>0</td>
+          <td>
+            <a href="attempt-report.html" target="_blank">Attempt HTML</a>
+             | <a href="attempt-report.json" target="_blank">Attempt JSON</a>
+          </td>
+        </tr>
+        <tr class="details">
+          <td colspan="8">
+            <details>
+              <summary>Details</summary>
+              <div class="detail-content">
+                <p><strong>Regression Reasons:</strong> Baseline was non-failure; current attempt failed.</p>
+                <p><strong>Improvements:</strong> None</p>
+                <p><strong>Friction Delta:</strong> added=[], removed=[], changed=[]</p>
+              </div>
+            </details>
+          </td>
+        </tr>
+      
+      </tbody>
+    </table>
+  </div>
+  </body>
+</html>

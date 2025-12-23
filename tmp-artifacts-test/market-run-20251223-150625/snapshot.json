@@ -1,0 +1,342 @@
+{
+  "schemaVersion": "v1",
+  "meta": {
+    "schemaVersion": "v1",
+    "createdAt": "2025-12-23T15:06:25.112Z",
+    "toolVersion": "0.2.0-phase2",
+    "url": "http://127.0.0.1:0",
+    "runId": "market-run-20251223-150625",
+    "environment": "production"
+  },
+  "crawl": {
+    "discoveredUrls": [],
+    "visitedCount": 0,
+    "failedCount": 0,
+    "safetyBlockedCount": 0,
+    "httpFailures": [],
+    "notes": ""
+  },
+  "attempts": [
+    {
+      "attemptId": "signup",
+      "attemptName": "Account Signup",
+      "goal": "User creates an account successfully",
+      "outcome": "FAILURE",
+      "totalDurationMs": 0,
+      "stepCount": 0,
+      "failedStepIndex": -1,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      }
+    },
+    {
+      "attemptId": "login",
+      "attemptName": "Account Login",
+      "goal": "User logs in successfully (single session)",
+      "outcome": "FAILURE",
+      "totalDurationMs": 0,
+      "stepCount": 0,
+      "failedStepIndex": -1,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      }
+    },
+    {
+      "attemptId": "checkout",
+      "attemptName": "Checkout Review",
+      "goal": "User places order without payment",
+      "outcome": "FAILURE",
+      "totalDurationMs": 0,
+      "stepCount": 0,
+      "failedStepIndex": -1,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      }
+    },
+    {
+      "attemptId": "signup",
+      "attemptName": "Account Signup",
+      "goal": "User creates an account successfully",
+      "outcome": "FAILURE",
+      "totalDurationMs": 374,
+      "stepCount": 0,
+      "failedStepIndex": -1,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      }
+    },
+    {
+      "attemptId": "login",
+      "attemptName": "Account Login",
+      "goal": "User logs in successfully (single session)",
+      "outcome": "FAILURE",
+      "totalDurationMs": 361,
+      "stepCount": 0,
+      "failedStepIndex": -1,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      }
+    },
+    {
+      "attemptId": "checkout",
+      "attemptName": "Checkout Review",
+      "goal": "User places order without payment",
+      "outcome": "FAILURE",
+      "totalDurationMs": 337,
+      "stepCount": 0,
+      "failedStepIndex": -1,
+      "friction": {
+        "isFriction": false,
+        "reasons": [],
+        "thresholds": {
+          "totalDurationMs": 2500,
+          "stepDurationMs": 1500,
+          "retryCount": 1
+        },
+        "metrics": {}
+      }
+    }
+  ],
+  "signals": [
+    {
+      "id": "attempt_signup",
+      "severity": "high",
+      "type": "failure",
+      "description": "Account Signup: FAILURE",
+      "affectedAttemptId": "signup",
+      "details": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "id": "attempt_login",
+      "severity": "high",
+      "type": "failure",
+      "description": "Account Login: FAILURE",
+      "affectedAttemptId": "login",
+      "details": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "id": "attempt_checkout",
+      "severity": "high",
+      "type": "failure",
+      "description": "Checkout Review: FAILURE",
+      "affectedAttemptId": "checkout",
+      "details": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "id": "attempt_signup",
+      "severity": "high",
+      "type": "failure",
+      "description": "Account Signup: FAILURE",
+      "affectedAttemptId": "signup",
+      "details": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "id": "attempt_login",
+      "severity": "high",
+      "type": "failure",
+      "description": "Account Login: FAILURE",
+      "affectedAttemptId": "login",
+      "details": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    },
+    {
+      "id": "attempt_checkout",
+      "severity": "high",
+      "type": "failure",
+      "description": "Checkout Review: FAILURE",
+      "affectedAttemptId": "checkout",
+      "details": "Step \"navigate_home\" failed: page.goto: net::ERR_UNSAFE_PORT at http://127.0.0.1:0/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:0/\", waiting until \"domcontentloaded\"\u001b[22m\n"
+    }
+  ],
+  "riskSummary": {
+    "totalSoftFailures": 0,
+    "totalFriction": 0,
+    "totalFailures": 3,
+    "failuresByCategory": {
+      "LEAD": {
+        "failures": 1,
+        "friction": 0,
+        "softFailures": 0
+      },
+      "TRUST/UX": {
+        "failures": 1,
+        "friction": 0,
+        "softFailures": 0
+      },
+      "REVENUE": {
+        "failures": 1,
+        "friction": 0,
+        "softFailures": 0
+      }
+    },
+    "softFailuresByAttempt": {},
+    "topRisks": [
+      {
+        "category": "LEAD",
+        "severity": "CRITICAL",
+        "failures": 1,
+        "frictionCount": 0,
+        "softFailures": 0
+      },
+      {
+        "category": "TRUST/UX",
+        "severity": "CRITICAL",
+        "failures": 1,
+        "frictionCount": 0,
+        "softFailures": 0
+      },
+      {
+        "category": "REVENUE",
+        "severity": "CRITICAL",
+        "failures": 1,
+        "frictionCount": 0,
+        "softFailures": 0
+      }
+    ]
+  },
+  "marketImpactSummary": {
+    "highestSeverity": "CRITICAL",
+    "totalRiskCount": 6,
+    "countsBySeverity": {
+      "CRITICAL": 4,
+      "WARNING": 2,
+      "INFO": 0
+    },
+    "topRisks": [
+      {
+        "attemptId": "checkout",
+        "validatorId": "outcome_checkout",
+        "validatorType": "outcome",
+        "category": "REVENUE",
+        "severity": "CRITICAL",
+        "impactScore": 95,
+        "humanReadableReason": "checkout attempt FAILED - user could not complete goal"
+      },
+      {
+        "attemptId": "checkout",
+        "validatorId": "outcome_checkout",
+        "validatorType": "outcome",
+        "category": "REVENUE",
+        "severity": "CRITICAL",
+        "impactScore": 95,
+        "humanReadableReason": "checkout attempt FAILED - user could not complete goal"
+      },
+      {
+        "attemptId": "signup",
+        "validatorId": "outcome_signup",
+        "validatorType": "outcome",
+        "category": "LEAD",
+        "severity": "CRITICAL",
+        "impactScore": 75,
+        "humanReadableReason": "signup attempt FAILED - user could not complete goal"
+      },
+      {
+        "attemptId": "signup",
+        "validatorId": "outcome_signup",
+        "validatorType": "outcome",
+        "category": "LEAD",
+        "severity": "CRITICAL",
+        "impactScore": 75,
+        "humanReadableReason": "signup attempt FAILED - user could not complete goal"
+      },
+      {
+        "attemptId": "login",
+        "validatorId": "outcome_login",
+        "validatorType": "outcome",
+        "category": "TRUST/UX",
+        "severity": "WARNING",
+        "impactScore": 65,
+        "humanReadableReason": "login attempt FAILED - user could not complete goal"
+      },
+      {
+        "attemptId": "login",
+        "validatorId": "outcome_login",
+        "validatorType": "outcome",
+        "category": "TRUST/UX",
+        "severity": "WARNING",
+        "impactScore": 65,
+        "humanReadableReason": "login attempt FAILED - user could not complete goal"
+      }
+    ]
+  },
+  "discovery": {
+    "pagesVisited": [],
+    "pagesVisitedCount": 0,
+    "interactionsDiscovered": 0,
+    "interactionsExecuted": 0,
+    "interactionsByType": {
+      "NAVIGATE": 0,
+      "CLICK": 0,
+      "FORM_FILL": 0
+    },
+    "interactionsByRisk": {
+      "safe": 0,
+      "risky": 0
+    },
+    "results": [],
+    "summary": ""
+  },
+  "evidence": {
+    "artifactDir": "tmp-artifacts-test\\market-run-20251223-150625",
+    "attemptArtifacts": {
+      "signup": {
+        "reportJson": "signup\\attempt-report.json",
+        "reportHtml": "signup\\attempt-report.html",
+        "screenshotDir": "signup\\attempt-screenshots"
+      },
+      "login": {
+        "reportJson": "login\\attempt-report.json",
+        "reportHtml": "login\\attempt-report.html",
+        "screenshotDir": "login\\attempt-screenshots"
+      },
+      "checkout": {
+        "reportJson": "checkout\\attempt-report.json",
+        "reportHtml": "checkout\\attempt-report.html",
+        "screenshotDir": "checkout\\attempt-screenshots"
+      }
+    },
+    "marketReportJson": "market-report.json",
+    "marketReportHtml": "market-report.html"
+  },
+  "baseline": {
+    "baselineFound": false,
+    "baselineCreatedThisRun": true,
+    "baselineCreatedAt": "2025-12-23T15:06:26.985Z",
+    "baselinePath": ".odavl-guardian\\baselines\\127.0.0.1-0-f61266b2\\baseline.json",
+    "diff": null
+  }
+}

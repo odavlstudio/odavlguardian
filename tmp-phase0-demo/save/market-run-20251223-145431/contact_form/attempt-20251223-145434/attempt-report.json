@@ -1,0 +1,135 @@
+{
+  "version": "1.0.0",
+  "runId": "20251223-145434",
+  "timestamp": "2025-12-23T14:54:34.848Z",
+  "attemptId": "contact_form",
+  "baseUrl": "http://127.0.0.1:3002?mode=ok",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "User submits a contact form successfully",
+    "startedAt": "2025-12-23T14:54:34.298Z",
+    "endedAt": "2025-12-23T14:54:34.737Z",
+    "durationMs": 439
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_form",
+      "type": "navigate",
+      "target": "http://127.0.0.1:3002?mode=ok",
+      "description": "Navigate to contact form",
+      "startedAt": "2025-12-23T14:54:34.299Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "navigate_form.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:34.316Z",
+      "durationMs": 17
+    },
+    {
+      "index": 2,
+      "id": "open_contact_page",
+      "type": "click",
+      "target": "a[data-guardian=\"contact-link\"], a[data-testid=\"contact-link\"], a:has-text(\"Contact\"), a[href*=\"/contact\"]",
+      "description": "Open contact page",
+      "startedAt": "2025-12-23T14:54:34.382Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "open_contact_page.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:34.459Z",
+      "durationMs": 77
+    },
+    {
+      "index": 3,
+      "id": "fill_name",
+      "type": "type",
+      "target": "input[name=\"name\"], input[data-testid=\"name\"], input[data-guardian=\"name\"]",
+      "description": "Enter name",
+      "startedAt": "2025-12-23T14:54:34.510Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_name.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:34.521Z",
+      "durationMs": 11
+    },
+    {
+      "index": 4,
+      "id": "fill_email",
+      "type": "type",
+      "target": "input[name=\"email\"], input[data-testid=\"email\"], input[type=\"email\"], input[data-guardian=\"email\"]",
+      "description": "Enter email",
+      "startedAt": "2025-12-23T14:54:34.566Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_email.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:34.580Z",
+      "durationMs": 14
+    },
+    {
+      "index": 5,
+      "id": "fill_message",
+      "type": "type",
+      "target": "textarea[name=\"message\"], textarea[data-testid=\"message\"], input[name=\"message\"], textarea[data-guardian=\"message\"]",
+      "description": "Enter message",
+      "startedAt": "2025-12-23T14:54:34.606Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "fill_message.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:34.612Z",
+      "durationMs": 6
+    },
+    {
+      "index": 6,
+      "id": "submit_form",
+      "type": "click",
+      "target": "button[type=\"submit\"], button:has-text(\"Submit\"), button:has-text(\"Send\"), button[data-guardian=\"submit\"]",
+      "description": "Submit form",
+      "startedAt": "2025-12-23T14:54:34.639Z",
+      "retries": 0,
+      "status": "success",
+      "error": null,
+      "screenshots": [
+        "submit_form.jpeg"
+      ],
+      "endedAt": "2025-12-23T14:54:34.687Z",
+      "durationMs": 48
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {
+      "totalDurationMs": 439,
+      "stepCount": 6,
+      "totalRetries": 0,
+      "maxStepDurationMs": 77
+    }
+  },
+  "error": null,
+  "successReason": "Success element visible: [data-guardian=\"success\"], [data-testid=\"success\"]",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}
