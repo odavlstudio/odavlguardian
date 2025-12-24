@@ -334,6 +334,152 @@ app.post('/account/delete', (req, res) => {
   res.status(403).send('❌ Risky action blocked');
 });
 
+// ============================================================================
+// GERMAN PAGES (for multilingual testing)
+// ============================================================================
+
+app.get('/de', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+      <meta charset="UTF-8">
+      <title>Startseite - Testseite</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        nav { margin: 20px 0; padding: 10px; background: #f0f0f0; }
+        a { display: inline-block; margin: 5px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+        footer { margin-top: 40px; padding: 20px; background: #f0f0f0; text-align: center; }
+        .safe { background-color: #28a745; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🇩🇪 Deutsche Testseite</h1>
+        <p>Dies ist eine deutschsprachige Testseite für die semantische Kontakterkennung.</p>
+        
+        <nav>
+          <h2>Navigation</h2>
+          <a href="/de/uber" class="safe">→ Über uns</a>
+          <a href="/de/kontakt" class="safe">→ Kontakt</a>
+          <a href="/de/datenschutz" class="safe">→ Datenschutz</a>
+        </nav>
+
+        <section>
+          <h2>Kontaktformular auf der Startseite</h2>
+          <form action="/de/kontakt" method="POST">
+            <label>Name:</label>
+            <input type="text" name="name" placeholder="Ihr Name" required>
+            <label>E-Mail:</label>
+            <input type="email" name="email" placeholder="ihre@email.de" required>
+            <label>Nachricht:</label>
+            <textarea name="message" placeholder="Ihre Nachricht" style="width: 100%; height: 100px;"></textarea>
+            <button type="submit" class="safe">Nachricht senden</button>
+          </form>
+        </section>
+
+        <footer>
+          <p>Kontaktieren Sie uns gerne über <a href="/de/kontakt">unser Kontaktformular</a> oder per <a href="mailto:kontakt@example.de">E-Mail</a>.</p>
+        </footer>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+app.get('/de/kontakt', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+      <meta charset="UTF-8">
+      <title>Kontakt - Testseite</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        a { display: inline-block; margin: 5px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+        form { border: 1px solid #ccc; padding: 20px; margin: 20px 0; }
+        input, textarea { display: block; margin: 10px 0; width: 100%; padding: 8px; }
+        button { background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>📧 Kontakt</h1>
+        <a href="/de">← Zurück zur Startseite</a>
+        
+        <p>Bitte füllen Sie das Kontaktformular aus und wir werden uns in Kürze bei Ihnen melden.</p>
+        
+        <form action="/de/kontakt" method="POST">
+          <label>Name:</label>
+          <input type="text" name="name" placeholder="Ihr Name" required>
+          <label>E-Mail:</label>
+          <input type="email" name="email" placeholder="ihre@email.de" required>
+          <label>Betreff:</label>
+          <input type="text" name="subject" placeholder="Betreff Ihrer Nachricht" required>
+          <label>Nachricht:</label>
+          <textarea name="message" placeholder="Ihre Nachricht" required></textarea>
+          <button type="submit">Nachricht senden</button>
+        </form>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+app.post('/de/kontakt', (req, res) => {
+  interactionLog.push({ action: 'kontakt', data: req.body, timestamp: new Date() });
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+      <meta charset="UTF-8">
+      <title>Nachricht versendet</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; }
+        a { display: inline-block; margin: 5px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+        [data-guardian="success"] { background: #d4edda; padding: 20px; border-radius: 4px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>✅ Nachricht versendet</h1>
+        <div data-guardian="success">
+          <p>Vielen Dank für Ihre Nachricht. Wir kümmern uns in Kürze darum!</p>
+        </div>
+        <a href="/de">← Zurück zur Startseite</a>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+app.get('/de/uber', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="de">
+    <head>
+      <meta charset="UTF-8">
+      <title>Über uns</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        a { display: inline-block; margin: 5px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>ℹ️ Über uns</h1>
+        <a href="/de">← Zurück zur Startseite</a>
+        <p>Wir sind ein Testunternehmen für die Validierung der semantischen Spracherkennung.</p>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 // Test endpoint for getting interaction log
 app.get('/test/log', (req, res) => {
   res.json({ log: interactionLog });
