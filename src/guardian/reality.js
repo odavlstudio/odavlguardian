@@ -3,7 +3,7 @@ const path = require('path');
 const { executeAttempt } = require('./attempt');
 const { MarketReporter } = require('./market-reporter');
 const { getDefaultAttemptIds, getAttemptDefinition, registerAttempt } = require('./attempt-registry');
-const { GuardianFlowExecutor } = require('./flow-executor');
+const { GuardianFlowExecutor, validateFlowDefinition } = require('./flow-executor');
 const { getDefaultFlowIds, getFlowDefinition } = require('./flow-registry');
 const { GuardianBrowser } = require('./browser');
 const { GuardianCrawler } = require('./crawler');
@@ -19,6 +19,18 @@ const { writeEnhancedHtml } = require('./enhanced-html-reporter');
 const { printCliSummary } = require('./cli-summary');
 const { sendWebhooks, getWebhookUrl, buildWebhookPayload } = require('./webhook');
 const { findContactOnPage, formatDetectionForReport } = require('./semantic-contact-finder');
+const { formatRunSummary } = require('./run-summary');
+const { isCiMode } = require('./ci-mode');
+const { formatCiSummary, deriveBaselineVerdict } = require('./ci-output');
+// Phase 7.1: Performance modes
+const { getTimeoutProfile } = require('./timeout-profiles');
+const { validateAttemptFilter, filterAttempts, filterFlows } = require('./attempts-filter');
+// Phase 7.2: Parallel execution
+const { executeParallel, validateParallel } = require('./parallel-executor');
+// Phase 7.3: Browser reuse
+const { BrowserPool } = require('./browser-pool');
+// Phase 7.4: Smart skips
+const { checkPrerequisites } = require('./prerequisite-checker');
 
 function generateRunId(prefix = 'market-run') {
   const now = new Date();
@@ -26,7 +38,23 @@ function generateRunId(prefix = 'market-run') {
   return `${prefix}-${dateStr}`;
 }
 
+function applySafeDefaults(config, warn) {
+  const updated = { ...config };
+  if (!Array.isArray(updated.attempts) || updated.attempts.length === 0) {
+    if (warn) warn('No attempts provided; using curated defaults.');
+    updated.attempts = getDefaultAttemptIds();
+  }
+  if (!Array.isArray(updated.flows) || updated.flows.length === 0) {
+    if (warn) warn('No flows provided; using curated defaults.');
+    updated.flows = getDefaultFlowIds();
+  }
+  return updated;
+}
+
 async function executeReality(config) {
+  const baseWarn = (...args) => console.warn(...args);
+  const safeConfig = applySafeDefaults(config, baseWarn);
+
   const {
     baseUrl,
     attempts = getDefaultAttemptIds(),
@@ -48,8 +76,52 @@ async function executeReality(config) {
     autoAttemptOptions = {},
     enableFlows = true,
     flows = getDefaultFlowIds(),
-    flowOptions = {}
-  } = config;
+    flowOptions = {},
+    // Phase 7.1: Performance modes
+    timeoutProfile = 'default',
+    failFast = false,
+    fast = false,
+    attemptsFilter = null,
+    // Phase 7.2: Parallel execution
+    parallel = 1
+  } = safeConfig;
+
+  // Phase 7.1: Validate and apply attempts filter
+  let validation = null;
+  if (attemptsFilter) {
+    validation = validateAttemptFilter(attemptsFilter);
+    if (!validation.valid) {
+      console.error(`Error: ${validation.error}`);
+      if (validation.hint) console.error(`Hint:  ${validation.hint}`);
+      process.exit(2);
+    }
+  }
+
+  // Phase 7.2: Validate parallel value
+  const parallelValidation = validateParallel(parallel);
+  if (!parallelValidation.valid) {
+    console.error(`Error: ${parallelValidation.error}`);
+    if (parallelValidation.hint) console.error(`Hint:  ${parallelValidation.hint}`);
+    process.exit(2);
+  }
+  const validatedParallel = parallelValidation.parallel || 1;
+
+  // Phase 7.1: Filter attempts and flows
+  let filteredAttempts = attempts;
+  let filteredFlows = flows;
+  if (attemptsFilter && validation && validation.valid && validation.ids.length > 0) {
+    filteredAttempts = filterAttempts(attempts, validation.ids);
+    filteredFlows = filterFlows(flows, validation.ids);
+    if (filteredAttempts.length === 0 && filteredFlows.length === 0) {
+      console.error('Error: No matching attempts or flows found after filtering');
+      console.error(`Hint:  Check your --attempts filter: ${attemptsFilter}`);
+      process.exit(2);
+    }
+  }
+
+  // Phase 7.1: Resolve timeout profile
+  const timeoutProfileConfig = getTimeoutProfile(timeoutProfile);
+  const resolvedTimeout = timeout || timeoutProfileConfig.default;
 
   // Validate baseUrl
   try {
@@ -61,12 +133,48 @@ async function executeReality(config) {
   const runId = generateRunId();
   const runDir = path.join(artifactsDir, runId);
   fs.mkdirSync(runDir, { recursive: true });
+  const ciMode = isCiMode();
 
-  console.log(`\n🧪 Market Reality Snapshot v1`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`📍 Base URL: ${baseUrl}`);
-  console.log(`🎯 Attempts: ${attempts.join(', ')}`);
-  console.log(`📁 Run Dir: ${runDir}`);
+  // Print positioning message based on policy
+  const isPolicyProtect = policy && (policy === 'preset:startup' || policy.includes('startup'));
+  if (!ciMode) {
+    if (isPolicyProtect) {
+      console.log('\nPROTECT MODE: Full market reality test (slower, deeper)');
+    } else {
+      console.log('\nREALITY MODE: Full market reality snapshot');
+    }
+  } else {
+    if (isPolicyProtect) {
+      console.log('PROTECT MODE: Full market reality test');
+    } else {
+      console.log('REALITY MODE: Full market reality snapshot');
+    }
+  }
+
+  // Phase 7.1: Print mode info
+  if (!ciMode) {
+    const modeLines = [];
+    if (fast) modeLines.push('MODE: fast');
+    if (failFast) modeLines.push('FAIL-FAST: enabled');
+    if (timeoutProfile !== 'default') modeLines.push(`TIMEOUT: ${timeoutProfile}`);
+    if (attemptsFilter) modeLines.push(`ATTEMPTS: ${attemptsFilter}`);
+    if (modeLines.length > 0) {
+      console.log(`\n⚡ ${modeLines.join(' | ')}`);
+    }
+  }
+
+  if (ciMode) {
+    console.log(`\nCI RUN: Market Reality Snapshot`);
+    console.log(`Base URL: ${baseUrl}`);
+    console.log(`Attempts: ${filteredAttempts.join(', ')}`);
+    console.log(`Run Dir: ${runDir}`);
+  } else {
+    console.log(`\n🧪 Market Reality Snapshot v1`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📍 Base URL: ${baseUrl}`);
+    console.log(`🎯 Attempts: ${filteredAttempts.join(', ')}`);
+    console.log(`📁 Run Dir: ${runDir}`);
+  }
 
   // Initialize snapshot builder
   const snapshotBuilder = new SnapshotBuilder(baseUrl, runId, toolVersion);
@@ -82,8 +190,8 @@ async function executeReality(config) {
     console.log(`\n🔍 Crawling for discovered URLs...`);
     const browser = new GuardianBrowser();
     try {
-      await browser.launch(timeout);
-      await browser.page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: timeout });
+      await browser.launch(resolvedTimeout);
+      await browser.page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: resolvedTimeout });
 
       // Wave 1.1: Detect page language and contact
       try {
@@ -111,11 +219,11 @@ async function executeReality(config) {
     console.log(`\n🔎 Running discovery engine...`);
     const browser = new GuardianBrowser();
     try {
-      await browser.launch(timeout);
+      await browser.launch(resolvedTimeout);
       const engine = new DiscoveryEngine({
         baseUrl,
         maxPages,
-        timeout,
+        timeout: resolvedTimeout,
         executeInteractions: false,
         browser,
       });
@@ -182,52 +290,180 @@ async function executeReality(config) {
     }
   }
 
-  // Execute all registered attempts
-  console.log(`\n🎬 Executing attempts...`);
-  for (const attemptId of attemptsToRun) {
-    const attemptDef = getAttemptDefinition(attemptId);
-    if (!attemptDef) {
-      throw new Error(`Attempt ${attemptId} not found in registry`);
+  // Phase 7.1: Apply attempts filter
+  if (attemptsFilter && validation && validation.valid && validation.ids.length > 0) {
+    attemptsToRun = filterAttempts(attemptsToRun, validation.ids);
+  }
+
+  // Phase 7.2: Print parallel mode if enabled
+  if (!ciMode && validatedParallel > 1) {
+    console.log(`\n⚡ PARALLEL: ${validatedParallel} concurrent attempts`);
+  }
+
+  // Phase 7.3: Initialize browser pool (single browser per run)
+  const browserPool = new BrowserPool();
+  const browserOptions = {
+    headless: !headful,
+    args: !headful ? [] : [],
+    timeout: resolvedTimeout
+  };
+  
+  try {
+    await browserPool.launch(browserOptions);
+    if (!ciMode) {
+      console.log(`🌐 Browser pool ready (reuse enabled)`);
     }
+  } catch (err) {
+    throw new Error(`Failed to launch browser pool: ${err.message}`);
+  }
 
-    console.log(`  • ${attemptDef.name}...`);
-    const attemptArtifactsDir = path.join(runDir, attemptId);
-    const result = await executeAttempt({
-      baseUrl,
-      attemptId,
-      artifactsDir: attemptArtifactsDir,
-      headful,
-      enableTrace,
-      enableScreenshots
-    });
+  // Execute all registered attempts (with optional parallelism)
+  console.log(`\n🎬 Executing attempts...`);
+  
+  // Shared state for fail-fast coordination
+  let shouldStopScheduling = false;
+  
+  // Phase 7.2: Execute attempts with bounded parallelism
+  // Phase 7.3: Pass browser pool to attempts
+  const attemptResults_parallel = await executeParallel(
+    attemptsToRun,
+    async (attemptId) => {
+      const attemptDef = getAttemptDefinition(attemptId);
+      if (!attemptDef) {
+        throw new Error(`Attempt ${attemptId} not found in registry`);
+      }
 
-    attemptResults.push({
-      attemptId,
-      attemptName: attemptDef.name,
-      goal: attemptDef.goal,
-      riskCategory: attemptDef.riskCategory || 'UNKNOWN',
-      source: attemptDef.source || 'manual',
-      ...result
-    });
+      if (!ciMode) {
+        console.log(`  • ${attemptDef.name}...`);
+      }
 
+      const attemptArtifactsDir = path.join(runDir, attemptId);
+      
+      // Phase 7.3: Create isolated context for this attempt
+      const { context, page } = await browserPool.createContext({
+        timeout: resolvedTimeout
+      });
+
+      let result;
+      try {
+        // Phase 7.4: Check prerequisites before executing attempt
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: resolvedTimeout });
+        const prereqCheck = await checkPrerequisites(page, attemptId, 2000);
+        
+        if (!prereqCheck.canProceed) {
+          // Skip attempt - prerequisites not met
+          if (!ciMode) {
+            console.log(`    ⊘ Skipped: ${prereqCheck.reason}`);
+          }
+          
+          result = {
+            outcome: 'SKIPPED',
+            skipReason: prereqCheck.reason,
+            exitCode: 0, // SKIPPED does not affect exit code
+            steps: [],
+            friction: null,
+            error: null
+          };
+        } else {
+          // Prerequisites met - execute normally
+          result = await executeAttempt({
+            baseUrl,
+            attemptId,
+            artifactsDir: attemptArtifactsDir,
+            headful,
+            enableTrace,
+            enableScreenshots,
+            quiet: ciMode,
+            timeout: resolvedTimeout,
+            // Phase 7.3: Pass context from pool
+            browserContext: context,
+            browserPage: page
+          });
+        }
+      } finally {
+        // Phase 7.3: Cleanup context after attempt
+        await browserPool.closeContext(context);
+      }
+
+      const attemptResult = {
+        attemptId,
+        attemptName: attemptDef.name,
+        goal: attemptDef.goal,
+        riskCategory: attemptDef.riskCategory || 'UNKNOWN',
+        source: attemptDef.source || 'manual',
+        ...result
+      };
+
+      // Phase 7.1: Fail-fast logic (stop on FAILURE, not FRICTION)
+      // Phase 7.4: SKIPPED does NOT trigger fail-fast
+      if (failFast && attemptResult.outcome === 'FAILURE') {
+        shouldStopScheduling = true;
+        if (!ciMode) {
+          console.log(`\n⚡ FAIL-FAST: stopping after failure: ${attemptDef.name}`);
+        }
+      }
+
+      return attemptResult;
+    },
+    validatedParallel,
+    { shouldStop: () => shouldStopScheduling }
+  );
+
+  // Collect results in order
+  for (const result of attemptResults_parallel) {
+    if (result && !result.skipped) {
+      attemptResults.push(result);
+    }
   }
 
   // Phase 3: Execute intent flows (deterministic, curated)
   if (enableFlows) {
     console.log(`\n🎯 Executing intent flows...`);
     const flowExecutor = new GuardianFlowExecutor({
-      timeout,
+      timeout: resolvedTimeout,
       screenshotOnStep: enableScreenshots,
+      baseUrl,
+      quiet: ciMode,
       ...flowOptions
     });
     const browser = new GuardianBrowser();
 
     try {
-      await browser.launch(timeout);
-      for (const flowId of (Array.isArray(flows) && flows.length ? flows : getDefaultFlowIds())) {
+      await browser.launch(resolvedTimeout);
+      // Phase 7.1: Apply flows filter
+      let flowsToRun = Array.isArray(filteredFlows) && filteredFlows.length ? filteredFlows : getDefaultFlowIds();
+      
+      for (const flowId of flowsToRun) {
         const flowDef = getFlowDefinition(flowId);
         if (!flowDef) {
           console.warn(`⚠️  Flow ${flowId} not found, skipping`);
+          continue;
+        }
+
+        const validation = validateFlowDefinition(flowDef);
+        if (!validation.ok) {
+          const reason = validation.reason || 'Flow misconfigured';
+          const flowResult = {
+            flowId,
+            flowName: flowDef.name,
+            riskCategory: flowDef.riskCategory || 'TRUST/UX',
+            description: flowDef.description,
+            outcome: 'FAILURE',
+            stepsExecuted: 0,
+            stepsTotal: Array.isArray(flowDef.steps) ? flowDef.steps.length : 0,
+            failedStep: 0,
+            error: reason,
+            screenshots: [],
+            failureReasons: [reason],
+            source: 'flow'
+          };
+          flowResults.push(flowResult);
+          
+          // Phase 7.1: Fail-fast on flow failure
+          if (failFast && flowResult.outcome === 'FAILURE') {
+            console.log(`\n⚡ FAIL-FAST: stopping after first failure: ${flowDef.name}`);
+            break;
+          }
           continue;
         }
 
@@ -235,27 +471,75 @@ async function executeReality(config) {
         const flowArtifactsDir = path.join(runDir, 'flows', flowId);
         fs.mkdirSync(flowArtifactsDir, { recursive: true });
 
-        const flowResult = await flowExecutor.executeFlow(browser.page, flowDef, flowArtifactsDir, baseUrl);
-        flowResults.push({
+        let flowResult;
+        try {
+          flowResult = await flowExecutor.executeFlow(browser.page, flowDef, flowArtifactsDir, baseUrl);
+        } catch (flowErr) {
+          console.warn(`⚠️  Flow ${flowDef.name} crashed: ${flowErr.message}`);
+          flowResult = {
+            flowId,
+            flowName: flowDef.name,
+            riskCategory: flowDef.riskCategory || 'TRUST/UX',
+            description: flowDef.description,
+            outcome: 'FAILURE',
+            stepsExecuted: 0,
+            stepsTotal: flowDef.steps.length,
+            durationMs: 0,
+            failedStep: null,
+            error: flowErr.message,
+            screenshots: [],
+            failureReasons: [`flow crashed: ${flowErr.message}`]
+          };
+        }
+
+        const resultWithMetadata = {
           flowId,
           flowName: flowDef.name,
           riskCategory: flowDef.riskCategory || 'TRUST/UX',
           description: flowDef.description,
-          outcome: flowResult.success ? 'SUCCESS' : 'FAILURE',
+          outcome: flowResult.outcome || (flowResult.success ? 'SUCCESS' : 'FAILURE'),
           stepsExecuted: flowResult.stepsExecuted,
           stepsTotal: flowResult.stepsTotal,
           durationMs: flowResult.durationMs,
           failedStep: flowResult.failedStep,
           error: flowResult.error,
           screenshots: flowResult.screenshots,
-          source: 'flow'
-        });
+          failureReasons: flowResult.failureReasons || [],
+          source: 'flow',
+          successEval: flowResult.successEval ? {
+            status: flowResult.successEval.status,
+            confidence: flowResult.successEval.confidence,
+            reasons: (flowResult.successEval.reasons || []).slice(0, 3),
+            evidence: flowResult.successEval.evidence || {}
+          } : null
+        };
+        
+        flowResults.push(resultWithMetadata);
+
+        // Phase 7.1: Fail-fast logic for flows (stop on FAILURE, not FRICTION)
+        if (failFast && resultWithMetadata.outcome === 'FAILURE') {
+          console.log(`\n⚡ FAIL-FAST: stopping after first failure: ${flowDef.name}`);
+          break;
+        }
       }
     } catch (flowErr) {
       console.warn(`⚠️  Flow execution failed (non-critical): ${flowErr.message}`);
     } finally {
       await browser.close().catch(() => {});
     }
+  }
+
+  // Flow summary logging
+  if (flowResults.length > 0 && !ciMode) {
+    const successCount = flowResults.filter(f => (f.outcome || f.success === true ? f.outcome === 'SUCCESS' || f.success === true : false)).length;
+    const frictionCount = flowResults.filter(f => f.outcome === 'FRICTION').length;
+    const failureCount = flowResults.filter(f => f.outcome === 'FAILURE' || f.success === false).length;
+    console.log(`\nRun completed: ${flowResults.length} flows (${successCount} successes, ${frictionCount} frictions, ${failureCount} failures)`);
+    const troubled = flowResults.filter(f => f.outcome === 'FRICTION' || f.outcome === 'FAILURE');
+    troubled.forEach(f => {
+      const reason = (f.failureReasons && f.failureReasons[0]) || (f.error) || (f.successEval && f.successEval.reasons && f.successEval.reasons[0]) || 'no reason captured';
+      console.log(` - ${f.flowName}: ${reason}`);
+    });
   }
 
   // Generate market report (existing flow)
@@ -461,8 +745,19 @@ async function executeReality(config) {
   // Override exit code if policy failed
   if (policyEval && !policyEval.passed) {
     exitCode = policyEval.exitCode || 1;
-    console.log(`🛡️  Policy override: exit code ${exitCode}`);
+    // Hide policy-suggested exit code in normal output; show only in debug mode
+    if (process.env.GUARDIAN_DEBUG) {
+      console.log(`🛡️  Policy evaluated: suggested exit code ${exitCode}`);
+    }
   }
+
+  // Flow-based exit code aggregation (0/1/2)
+  const flowExitCode = computeFlowExitCode(flowResults);
+  exitCode = flowExitCode;
+  // Do not print an extra exit code line; the summary will include the single authoritative exit code.
+
+  // Phase 7.3: Cleanup browser pool
+  await browserPool.close();
 
   return {
     exitCode,
@@ -482,15 +777,49 @@ async function executeReality(config) {
 
 async function runRealityCLI(config) {
   try {
+    if (config.watch) {
+      const { startWatchMode } = require('./watch-runner');
+      const watchResult = await startWatchMode(config);
+      if (watchResult && watchResult.watchStarted === false && typeof watchResult.exitCode === 'number') {
+        process.exit(watchResult.exitCode);
+      }
+      // When watch is active, do not exit; watcher owns lifecycle
+      return;
+    }
+
     const result = await executeReality(config);
 
     // Phase 6: Print enhanced CLI summary
-    printCliSummary(result.snapshot, result.policyEval);
+    const ciMode = isCiMode();
+    if (ciMode) {
+      const ciSummary = formatCiSummary({
+        flowResults: result.flowResults || [],
+        diffResult: result.diffResult || null,
+        baselineCreated: result.baselineCreated || false,
+        exitCode: result.exitCode,
+        maxReasons: 5
+      });
+      console.log(ciSummary);
+    } else {
+      printCliSummary(result.snapshot, result.policyEval);
+      console.log(formatRunSummary({
+        flowResults: result.flowResults || [],
+        diffResult: result.diffResult || null,
+        baselineCreated: result.baselineCreated || false,
+        exitCode: result.exitCode
+      }, { label: 'Summary' }));
+    }
 
     process.exit(result.exitCode);
   } catch (err) {
     console.error(`\n❌ Error: ${err.message}`);
-    if (err.stack) console.error(err.stack);
+    if (process.env.GUARDIAN_DEBUG) {
+      if (err.stack) console.error(err.stack);
+    } else if (err.stack) {
+      const stackLine = (err.stack.split('\n')[1] || '').trim();
+      if (stackLine) console.error(`   at ${stackLine}`);
+      console.error('   (Set GUARDIAN_DEBUG=1 for full stack)');
+    }
     process.exit(1);
   }
 }
@@ -559,4 +888,13 @@ function computeMarketRiskSummary(attemptResults) {
   return summary;
 }
 
-module.exports = { executeReality, runRealityCLI };
+function computeFlowExitCode(flowResults) {
+  if (!Array.isArray(flowResults) || flowResults.length === 0) return 0;
+  const hasFailure = flowResults.some(f => f.outcome === 'FAILURE' || f.success === false);
+  if (hasFailure) return 2;
+  const hasFriction = flowResults.some(f => f.outcome === 'FRICTION');
+  if (hasFriction) return 1;
+  return 0;
+}
+
+module.exports = { executeReality, runRealityCLI, computeFlowExitCode, applySafeDefaults };

@@ -18,6 +18,9 @@ class AttemptEngine {
       stepDurationMs: 1500,   // Any single step > 1.5s
       retryCount: 1            // More than 1 retry = friction
     };
+    this.maxStepRetries = typeof options.maxStepRetries === 'number'
+      ? Math.max(1, options.maxStepRetries)
+      : 2;
   }
 
   /**
@@ -85,7 +88,7 @@ class AttemptEngine {
         try {
           // Execute with retry logic (up to 2 attempts)
           let success = false;
-          for (let attempt = 0; attempt < 2; attempt++) {
+          for (let attempt = 0; attempt < this.maxStepRetries; attempt++) {
             try {
               if (attempt > 0) {
                 currentStep.retries++;
@@ -97,7 +100,7 @@ class AttemptEngine {
               success = true;
               break;
             } catch (err) {
-              if (attempt === 1) {
+              if (attempt === this.maxStepRetries - 1) {
                 throw err; // Final attempt failed
               }
               // Retry on first failure
@@ -396,22 +399,33 @@ class AttemptEngine {
       case 'waitFor':
         const waitSelectors = stepDef.target.split(',').map(s => s.trim());
         let found = false;
+        let earlyExitReason = null;
 
         for (const selector of waitSelectors) {
           try {
+            // Phase 7.4: Adaptive timeout
+            const adaptiveTimeout = stepDef.timeout || 5000;
+            
             await page.waitForSelector(selector, {
-              timeout: stepDef.timeout || 5000,
+              timeout: adaptiveTimeout,
               state: stepDef.state || 'visible'
             });
             found = true;
             break;
           } catch (err) {
-            // Try next selector
+            // Phase 7.4: Detect early exit signals
+            if (err.message && err.message.includes('Timeout')) {
+              earlyExitReason = 'Target never appeared (DOM settled)';
+            }
           }
         }
 
         if (!found) {
-          throw new Error(`Element not found: ${stepDef.target}`);
+          // Phase 7.4: Include early exit reason
+          const errorMsg = earlyExitReason 
+            ? `${earlyExitReason}: ${stepDef.target}`
+            : `Element not found: ${stepDef.target}`;
+          throw new Error(errorMsg);
         }
         break;
 

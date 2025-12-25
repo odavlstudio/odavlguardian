@@ -62,6 +62,44 @@ const SEMANTIC_DICTIONARY = {
     'om', 'om oss', 'var historia',
     // Arabic
     'عن', 'عننا', 'عن الشركة', 'فريقنا', 'قصتنا'
+  ],
+  form: [
+    // English
+    'form', 'form submission', 'contact form', 'feedback form', 'inquiry form',
+    'form page', 'form element', 'form section', 'form area',
+    // German
+    'formular', 'form', 'kontaktformular', 'feedback formular',
+    // Spanish
+    'formulario', 'formulario de contacto', 'formulario de envio',
+    // French
+    'formulaire', 'formulaire de contact', 'formulaire d envoi',
+    // Portuguese
+    'formulario', 'formulario de contato', 'formulario de envio',
+    // Italian
+    'modulo', 'modulo di contatto', 'modulo di invio',
+    // Dutch
+    'formulier', 'contactformulier', 'formulier voor contact',
+    // Swedish
+    'formular', 'kontaktformular', 'feedback formular'
+  ],
+  submit: [
+    // English
+    'submit', 'send', 'send message', 'send form', 'submit form',
+    'submit button', 'send button', 'post', 'publish', 'share',
+    // German
+    'senden', 'absenden', 'abschicken', 'submit', 'ubermitteln',
+    // Spanish
+    'enviar', 'enviar formulario', 'enviar mensaje', 'publicar',
+    // French
+    'envoyer', 'soumettre', 'publier', 'partager',
+    // Portuguese
+    'enviar', 'enviar formulario', 'enviar mensagem', 'publicar',
+    // Italian
+    'inviare', 'inviare modulo', 'inviare messaggio', 'pubblicare',
+    // Dutch
+    'verzenden', 'verstuur', 'verstuur formulier', 'publiceren',
+    // Swedish
+    'skicka', 'skicka formular', 'publicera'
   ]
 };
 

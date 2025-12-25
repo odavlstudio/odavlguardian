@@ -38,6 +38,22 @@ class SnapshotBuilder {
    * Add attempt result to snapshot
    */
   addAttempt(attemptResult, artifactDir) {
+    // Phase 7.4: Handle SKIPPED attempts (don't add as signal)
+    if (attemptResult.outcome === 'SKIPPED') {
+      this.snapshot.attempts.push({
+        attemptId: attemptResult.attemptId,
+        attemptName: attemptResult.attemptName,
+        goal: attemptResult.goal,
+        outcome: 'SKIPPED',
+        skipReason: attemptResult.skipReason || 'Prerequisites not met',
+        totalDurationMs: 0,
+        stepCount: 0,
+        failedStepIndex: -1,
+        friction: null
+      });
+      return; // Don't create signals for skipped attempts
+    }
+
     const signal = {
       id: `attempt_${attemptResult.attemptId}`,
       severity: attemptResult.outcome === 'FAILURE' ? 'high' : 'medium',
@@ -123,7 +139,13 @@ class SnapshotBuilder {
       stepsTotal: flowResult.stepsTotal || 0,
       durationMs: flowResult.durationMs || 0,
       failedStep: flowResult.failedStep || null,
-      error: flowResult.error || null
+      error: flowResult.error || null,
+      successEval: flowResult.successEval ? {
+        status: flowResult.successEval.status,
+        confidence: flowResult.successEval.confidence,
+        reasons: (flowResult.successEval.reasons || []).slice(0, 3),
+        evidence: flowResult.successEval.evidence || {}
+      } : null
     });
 
     if (runDir) {

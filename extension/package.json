@@ -1,0 +1,63 @@
+{
+  "name": "odavl-guardian",
+  "displayName": "ODAVL Guardian",
+  "description": "Browser testing and market reality validation for your web applications",
+  "version": "0.2.0",
+  "publisher": "odavl",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/odavlstudio/odavlguardian.git"
+  },
+  "bugs": {
+    "url": "https://github.com/odavlstudio/odavlguardian/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Other"
+  ],
+  "keywords": [
+    "testing",
+    "browser",
+    "playwright",
+    "regression",
+    "ci",
+    "automation",
+    "quality",
+    "guardian"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "odavlGuardian.runRealityCheck",
+        "title": "Guardian: Run Reality Check"
+      },
+      {
+        "command": "odavlGuardian.openLastReport",
+        "title": "Guardian: Open Last Report"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}

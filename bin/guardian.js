@@ -5,6 +5,19 @@ if (process.platform === 'win32') {
   process.stderr.setEncoding('utf-8');
 }
 
+// Minimal DX: handle --version/-v immediately (before any other work)
+const args = process.argv.slice(2);
+if (args.length === 1 && (args[0] === '--version' || args[0] === '-v')) {
+  try {
+    const pkg = require('../package.json');
+    console.log(pkg.version);
+    process.exit(0);
+  } catch (e) {
+    console.error('Version unavailable');
+    process.exit(1);
+  }
+}
+
 // PHASE 6: Early flag validation (before heavy module loads)
 const { validateFlags, reportFlagError } = require('../src/guardian/flag-validator');
 const validation = validateFlags(process.argv);
@@ -14,7 +27,7 @@ if (!validation.valid) {
 }
 
 // PHASE 6: First-run detection (lightweight)
-const { isFirstRun, markAsRun, printWelcome } = require('../src/guardian/first-run');
+const { isFirstRun, markAsRun, printWelcome, printFirstRunHint } = require('../src/guardian/first-run');
 
 const { runAttemptCLI } = require('../src/guardian/attempt');
 const { runRealityCLI } = require('../src/guardian/reality');
@@ -53,6 +66,10 @@ function parseArgs(argv) {
   }
 
   if (subcommand === 'smoke') {
+    return { subcommand: 'smoke', config: parseSmokeArgs(args.slice(1)) };
+  }
+
+  if (subcommand === 'check') {
     return { subcommand: 'smoke', config: parseSmokeArgs(args.slice(1)) };
   }
 
@@ -607,8 +624,8 @@ function printHelpProtect() {
 Usage: guardian protect <url> [options]
 
 WHAT IT DOES:
-  Quick shortcut for reality check with startup policy.
-  Equivalent to: guardian reality --url <url> --policy preset:startup
+  Full market reality test with startup policy.
+  Deeper than smoke; runs full discovery, attempts, and baseline comparison.
 
 OPTIONS:
   <url>                    Target URL (required)
@@ -635,7 +652,7 @@ function printHelpSmoke() {
 Usage: guardian smoke <url>
 
 WHAT IT DOES:
-  Fast smoke validation under ~30s.
+  Fast market sanity check (<30s).
   Runs only critical paths: homepage reachability, navigation probe,
   auth (login or signup), and contact/support if present.
 
@@ -784,21 +801,11 @@ async function main() {
   const args = process.argv.slice(2);
 
   // Minimal release flag: print version and exit
-  if (args.length === 1 && args[0] === '--version') {
-    try {
-      const pkg = require('../package.json');
-      console.log(pkg.version);
-      process.exit(0);
-    } catch (e) {
-      console.error('Version unavailable');
-      process.exit(1);
-    }
-  }
-
   // PHASE 6: First-run welcome (only once)
   if (args.length > 0 && !['--help', '-h', 'init', 'presets'].includes(args[0])) {
     if (isFirstRun('.odavl-guardian')) {
       printWelcome('ODAVL Guardian');
+      printFirstRunHint();
       markAsRun('.odavl-guardian');
     }
   }
@@ -811,8 +818,9 @@ Usage: guardian <subcommand> [options]
 
 QUICK START:
   init                     Initialize Guardian in current directory
-  protect <url>            Quick reality check with startup policy
-  smoke <url>              30-second smoke validation (critical paths)
+  protect <url>            Full market reality test (slower, deeper)
+  smoke <url>              Fast market sanity check (<30s)
+  check <url>              Alias: same as smoke
   reality                  Full Market Reality Snapshot
 
 OTHER COMMANDS:

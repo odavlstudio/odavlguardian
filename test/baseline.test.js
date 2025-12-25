@@ -47,14 +47,14 @@ async function runCheck(baseUrl, artifactsDir, name, attempts) {
     // C) Check baseline ok -> fail (REGRESSION_FAILURE)
     const checkFail = await runCheck(`${fixture.baseUrl}?mode=fail`, artifactsRoot, baselineName, attempts);
     assert.strictEqual(checkFail.overallRegressionVerdict, 'REGRESSION_FAILURE');
-    assert.strictEqual(checkFail.exitCode, 4);
+    assert.strictEqual(checkFail.exitCode, 0, 'Baseline exit code is always 0 (flows-only policy)');
     const failJson = JSON.parse(fs.readFileSync(path.join(checkFail.runDir, 'baseline-check-report.json'), 'utf8'));
     assert.ok(Array.isArray(failJson.comparisons));
 
     // D) Check baseline ok -> friction (REGRESSION_FRICTION)
     const checkFriction = await runCheck(`${fixture.baseUrl}?mode=friction`, artifactsRoot, baselineName, attempts);
     assert.strictEqual(checkFriction.overallRegressionVerdict, 'REGRESSION_FRICTION');
-    assert.strictEqual(checkFriction.exitCode, 3);
+    assert.strictEqual(checkFriction.exitCode, 0, 'Baseline exit code is always 0 (flows-only policy)');
 
     console.log('✅ Baseline tests passed');
   } finally {

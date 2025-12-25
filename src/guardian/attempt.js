@@ -25,8 +25,16 @@ async function executeAttempt(config) {
     artifactsDir = './artifacts',
     enableTrace = true,
     enableScreenshots = true,
-    headful = false
+    headful = false,
+    quiet = false,
+    // Phase 7.3: Accept browser context from pool
+    browserContext = null,
+    browserPage = null
   } = config;
+
+  const log = (...args) => {
+    if (!quiet) console.log(...args);
+  };
 
   // Validate baseUrl
   try {
@@ -38,6 +46,7 @@ async function executeAttempt(config) {
   const browser = new GuardianBrowser();
   let attemptResult = null;
   let runDir = null;
+  const usingPoolContext = browserContext && browserPage;
 
   try {
     // Prepare artifacts directory
@@ -53,16 +62,24 @@ async function executeAttempt(config) {
       fs.mkdirSync(runDir, { recursive: true });
     }
 
-    console.log(`\n📁 Artifacts: ${runDir}`);
+    log(`\n📁 Artifacts: ${runDir}`);
 
-    // Launch browser
-    console.log(`\n🚀 Launching browser...`);
-    const browserOptions = { 
-      headless: !headful,
-      args: !headful ? ['--no-sandbox', '--disable-setuid-sandbox'] : []
-    };
-    await browser.launch(30000, browserOptions);
-    console.log(`✅ Browser launched`);
+    // Phase 7.3: Use pool context or launch own browser
+    if (usingPoolContext) {
+      browser.useContext(browserContext, browserPage, config.timeout || 30000);
+      if (!quiet) {
+        // Silent - don't log for each attempt in pool mode
+      }
+    } else {
+      // Legacy mode: launch own browser
+      log(`\n🚀 Launching browser...`);
+      const browserOptions = { 
+        headless: !headful,
+        args: !headful ? ['--no-sandbox', '--disable-setuid-sandbox'] : []
+      };
+      await browser.launch(30000, browserOptions);
+      log(`✅ Browser launched`);
+    }
 
     // Start trace if enabled
     let tracePath = null;
@@ -70,12 +87,12 @@ async function executeAttempt(config) {
       const networkTrace = new GuardianNetworkTrace({ enableTrace: true });
       tracePath = await networkTrace.startTrace(browser.context, runDir);
       if (tracePath) {
-        console.log(`📹 Trace recording started`);
+        log(`📹 Trace recording started`);
       }
     }
 
     // Execute attempt
-    console.log(`\n🎬 Executing attempt...`);
+    log(`\n🎬 Executing attempt...`);
     const engine = new AttemptEngine({
       attemptId,
       timeout: config.timeout || 30000,
@@ -92,79 +109,81 @@ async function executeAttempt(config) {
 
     attemptResult = await engine.executeAttempt(browser.page, attemptId, baseUrl, runDir, validators);
 
-    console.log(`\n✅ Attempt completed: ${attemptResult.outcome}`);
+    log(`\n✅ Attempt completed: ${attemptResult.outcome}`);
 
     // Stop trace if enabled
     if (enableTrace && browser.context && tracePath) {
       const networkTrace = new GuardianNetworkTrace({ enableTrace: true });
       await networkTrace.stopTrace(browser.context, tracePath);
-      console.log(`✅ Trace saved: trace.zip`);
+      log(`✅ Trace saved: trace.zip`);
     }
 
     // Generate reports
-    console.log(`\n📊 Generating reports...`);
+    log(`\n📊 Generating reports...`);
     const reporter = new AttemptReporter();
     const report = reporter.createReport(attemptResult, baseUrl, attemptId);
 
     // Save JSON report
     const jsonPath = reporter.saveJsonReport(report, runDir);
-    console.log(`✅ JSON report: ${path.basename(jsonPath)}`);
+    log(`✅ JSON report: ${path.basename(jsonPath)}`);
 
     // Save HTML report
     const htmlContent = reporter.generateHtmlReport(report);
     const htmlPath = reporter.saveHtmlReport(htmlContent, runDir);
-    console.log(`✅ HTML report: ${path.basename(htmlPath)}`);
+    log(`✅ HTML report: ${path.basename(htmlPath)}`);
 
     // Display summary
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
     const outcomeEmoji = attemptResult.outcome === 'SUCCESS' ? '🟢' : 
                           attemptResult.outcome === 'FRICTION' ? '🟡' : '🔴';
 
-    console.log(`\n${outcomeEmoji} ${attemptResult.outcome}`);
+    log(`\n${outcomeEmoji} ${attemptResult.outcome}`);
 
     if (attemptResult.outcome === 'SUCCESS') {
-      console.log(`\n✅ User successfully completed the attempt!`);
-      console.log(`   ${attemptResult.successReason}`);
+      log(`\n✅ User successfully completed the attempt!`);
+      log(`   ${attemptResult.successReason}`);
     } else if (attemptResult.outcome === 'FRICTION') {
-      console.log(`\n⚠️  Attempt succeeded but with friction:`);
+      log(`\n⚠️  Attempt succeeded but with friction:`);
       attemptResult.friction.reasons.forEach(reason => {
-        console.log(`   • ${reason}`);
+        log(`   • ${reason}`);
       });
     } else {
-      console.log(`\n❌ Attempt failed:`);
-      console.log(`   ${attemptResult.error}`);
+      log(`\n❌ Attempt failed:`);
+      log(`   ${attemptResult.error}`);
     }
 
-    console.log(`\n⏱️  Duration: ${attemptResult.totalDurationMs}ms`);
-    console.log(`📋 Steps: ${attemptResult.steps.length}`);
+    log(`\n⏱️  Duration: ${attemptResult.totalDurationMs}ms`);
+    log(`📋 Steps: ${attemptResult.steps.length}`);
 
     if (attemptResult.steps.length > 0) {
       const failedSteps = attemptResult.steps.filter(s => s.status === 'failed');
       if (failedSteps.length > 0) {
-        console.log(`❌ Failed steps: ${failedSteps.length}`);
+        log(`❌ Failed steps: ${failedSteps.length}`);
         failedSteps.forEach(step => {
-          console.log(`   • ${step.id}: ${step.error}`);
+          log(`   • ${step.id}: ${step.error}`);
         });
       }
 
       const retriedSteps = attemptResult.steps.filter(s => s.retries > 0);
       if (retriedSteps.length > 0) {
-        console.log(`🔄 Steps with retries: ${retriedSteps.length}`);
+        log(`🔄 Steps with retries: ${retriedSteps.length}`);
         retriedSteps.forEach(step => {
-          console.log(`   • ${step.id}: ${step.retries} retries`);
+          log(`   • ${step.id}: ${step.retries} retries`);
         });
       }
     }
 
-    console.log(`\n💾 Full report: ${runDir}`);
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+    log(`\n💾 Full report: ${runDir}`);
+    log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
-    // Close browser before returning
-    try {
-      await browser.close();
-    } catch (closeErr) {
-      // Ignore browser close errors
+    // Phase 7.3: Close browser only if we own it (not using pool)
+    if (!usingPoolContext) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        // Ignore browser close errors
+      }
     }
 
     // Determine exit code
@@ -193,7 +212,10 @@ async function executeAttempt(config) {
     };
 
   } catch (err) {
-    await browser.close().catch(() => {});
+    // Phase 7.3: Only close if we own the browser
+    if (!usingPoolContext) {
+      await browser.close().catch(() => {});
+    }
     throw err;
   }
 }

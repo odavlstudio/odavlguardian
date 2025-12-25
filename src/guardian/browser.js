@@ -5,8 +5,15 @@ class GuardianBrowser {
     this.browser = null;
     this.context = null;
     this.page = null;
+    this.ownsContext = false; // Track if we own the context for cleanup
   }
 
+  /**
+   * Launch browser with its own context (legacy mode)
+   * @param {number} timeout - Default timeout
+   * @param {Object} options - Launch options
+   * @returns {Promise<boolean>}
+   */
   async launch(timeout = 20000, options = {}) {
     try {
       const launchOptions = { 
@@ -30,9 +37,25 @@ class GuardianBrowser {
       this.context = await this.browser.newContext(contextOptions);
       this.page = await this.context.newPage();
       this.page.setDefaultTimeout(timeout);
+      this.ownsContext = true; // We own browser and context
       return true;
     } catch (err) {
       throw new Error(`Failed to launch browser: ${err.message}`);
+    }
+  }
+
+  /**
+   * Phase 7.3: Use an existing context from browser pool
+   * @param {BrowserContext} context - Playwright browser context
+   * @param {Page} page - Playwright page
+   * @param {number} timeout - Default timeout
+   */
+  useContext(context, page, timeout = 20000) {
+    this.context = context;
+    this.page = page;
+    this.ownsContext = false; // Pool owns the context
+    if (timeout) {
+      this.page.setDefaultTimeout(timeout);
     }
   }
 
@@ -82,7 +105,11 @@ class GuardianBrowser {
 
   async close() {
     try {
-      if (this.browser) await this.browser.close();
+      // Phase 7.3: Only close browser if we own it (legacy mode)
+      // If using pool context, pool handles cleanup
+      if (this.ownsContext && this.browser) {
+        await this.browser.close();
+      }
     } catch (err) {
       // Ignore close errors
     }

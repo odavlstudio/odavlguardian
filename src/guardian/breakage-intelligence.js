@@ -34,6 +34,7 @@ function analyzeFailure(item, isFlow = false) {
     id: isFlow ? item.flowId : item.attemptId,
     name: isFlow ? item.flowName : item.attemptName,
     outcome: item.outcome,
+    source: isFlow ? 'flow' : 'attempt',
     breakType,
     domain,
     severity,

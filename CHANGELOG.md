@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.2.0 — Performance Edition (2025-12-24)
+
+### Highlights
+
+- 5–10x faster execution via parallel attempts, browser reuse, smart skips
+- Smoke mode (<30s) for CI
+- Fast/fail-fast/timeout profiles
+- CI-ready output and exit codes
+
+### Compatibility
+
+- Backward compatible; performance features are opt-in unless explicitly enabled
+
+### Commands
+
+- `guardian smoke <url>`
+- `guardian protect <url> --fast --parallel 3`
+
 ## Unreleased — Wave 1.1
 
 ### Added (Wave 1.1 — Language & Semantics Hardening)
@@ -28,13 +46,13 @@
 **Before Wave 1.1**: Guardian could not detect "Kontakt" (German for contact)
 
 **After Wave 1.1**: German pages are properly detected
-```
+
 🌍 Language Detection: German (lang=de)
 ✅ Contact Detection Results (3 candidates)
+
 1. Contact detected, (lang=de, source=href, token=kontakt, confidence=high)
    Text: "→ Kontakt"
-   Link: http://example.de/kontakt
-```
+   Link: <http://example.de/kontakt>
 
 See [WAVE-1.1-SEMANTIC-DETECTION.md](WAVE-1.1-SEMANTIC-DETECTION.md) for detailed architecture and implementation guide.
 

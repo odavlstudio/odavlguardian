@@ -316,11 +316,25 @@ async function checkBaseline(options) {
 
   const baselinePath = path.join(baselineDir ? baselineDir : path.join(artifactsDir, 'baselines'), `${name}.json`);
   let baseline;
+  let baselineStatus = 'LOADED';
   try {
     baseline = loadBaselineOrThrow(baselinePath);
   } catch (err) {
-    console.error(`\n❌ Baseline error: ${err.message}`);
-    return { exitCode: 1, error: err.message };
+    // Handle missing baseline gracefully
+    if (err.code === 'BASELINE_MISSING') {
+      console.log(`Baseline: not found (no comparison)`);
+      baselineStatus = 'NO_BASELINE';
+      baseline = null;
+    } else if (err.code === 'SCHEMA_MISMATCH') {
+      console.warn(`⚠️  Baseline schema mismatch - skipping comparison`);
+      baselineStatus = 'BASELINE_UNUSABLE';
+      baseline = null;
+    } else {
+      // Assume JSON parse error or other corruption
+      console.warn(`⚠️  Baseline corrupt or unreadable - skipping comparison`);
+      baselineStatus = 'BASELINE_UNUSABLE';
+      baseline = null;
+    }
   }
 
   const current = await executeReality({ 
@@ -337,6 +351,18 @@ async function checkBaseline(options) {
     enableFlows,
     flowOptions
   });
+
+  // If baseline is not available, skip comparison and return early
+  if (!baseline || baselineStatus !== 'LOADED') {
+    return {
+      exitCode: 0,  // Exit code based on flows only, not baseline
+      runDir: current.runDir,
+      overallRegressionVerdict: baselineStatus === 'NO_BASELINE' ? 'NO_BASELINE' : 'BASELINE_UNUSABLE',
+      comparisons: [],
+      flowComparisons: [],
+      baselineStatus
+    };
+  }
 
   // Use baseline attempts (includes auto-generated) for comparison
   const comparisonAttempts = baseline.attempts || attempts;
@@ -441,22 +467,30 @@ async function checkBaseline(options) {
       console.log(` - ${label}: ${r.regressionType} (${reasons})`);
     }
   }
-  console.log(`Report: ${htmlPath}`);
+  
+  // Show improvements
+  const improvementList = comparisons.filter(c => c.improvements && c.improvements.length > 0);
+  if (improvementList.length > 0) {
+    console.log('\n✅ Improvements detected:');
+    for (const i of improvementList.slice(0, 5)) {
+      const label = i.attemptId || 'unknown';
+      const improvementText = i.improvements.slice(0, 2).join('; ');
+      console.log(` + ${label}: ${improvementText}`);
+    }
+  }
 
-  let exitCode = 0;
-  if (overallRegressionVerdict === 'REGRESSION_FAILURE') exitCode = 4;
-  else if (overallRegressionVerdict === 'REGRESSION_FRICTION') exitCode = 3;
-  else exitCode = 0;
-
+  // CRITICAL: Exit code is ALWAYS 0 from baseline check
+  // Exit codes come from flow outcomes only (Phase 2.x policy)
   return {
-    exitCode,
+    exitCode: 0,
     runDir: current.runDir,
     reportJsonPath: jsonPath,
     reportHtmlPath: htmlPath,
     junitPath: junit || null,
     overallRegressionVerdict,
     comparisons,
-    flowComparisons: comparisonFlows
+    flowComparisons: comparisonFlows,
+    baselineStatus: 'LOADED'
   };
 }
 
