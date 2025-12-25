@@ -22,6 +22,7 @@ export default function Page() {
           <a href="#why" className="nav-link">Why</a>
           <a href="#when" className="nav-link">When</a>
           <a href="#how" className="nav-link">How</a>
+          <a href="#reports" className="nav-link">Reports</a>
           <a href="https://github.com/odavlstudio/odavlguardian/blob/main/README.md" className="nav-link" target="_blank" rel="noopener noreferrer">Docs</a>
         </nav>
         <div className="nav-actions">
@@ -126,6 +127,31 @@ export default function Page() {
             <p style={{ marginBottom: 12 }}>Use Guardian after UI updates to detect navigation or submission regressions. It confirms that visual changes did not break interactive behavior in key journeys.</p>
             <h3 style={{ marginTop: 16, fontSize: 16, fontWeight: 600 }}>In CI Pipelines</h3>
             <p style={{ marginBottom: 12 }}>Run Guardian as a final reality check after tests pass but before merge or deploy. It executes flows in CI and fails the job when critical behavior does not meet expectations.</p>
+          </div>
+        </section>
+
+        <section className="section" id="reports">
+          <div>
+            <h2>OUTPUTS & REPORTS</h2>
+            <h3 style={{ marginTop: 16, fontSize: 16, fontWeight: 600 }}>What Guardian Produces</h3>
+            <ul className="list" role="list" style={{ marginTop: 8, marginBottom: 12 }}>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>HTML report — a human-readable summary designed for decisions</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Contextual errors — messages and states explaining what failed</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Screenshots — visual evidence captured during flows</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Execution details — steps taken, timings, and outcomes</span></li>
+            </ul>
+            <h3 style={{ marginTop: 16, fontSize: 16, fontWeight: 600 }}>What the Report Is For</h3>
+            <ul className="list" role="list" style={{ marginTop: 8, marginBottom: 12 }}>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Understanding what broke — clear identification of failed steps</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Understanding where and why — page context and error detail</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Supporting release decisions — evidence to proceed or fix first</span></li>
+            </ul>
+            <h3 style={{ marginTop: 16, fontSize: 16, fontWeight: 600 }}>How Developers Use It</h3>
+            <ul className="list" role="list" style={{ marginTop: 8 }}>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Review before deploy — confirm flows work in reality</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Share with teammates — align on what failed and why</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Attach to CI results — include the report in your pipeline output</span></li>
+            </ul>
           </div>
         </section>
 
