@@ -42,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${spaceGrotesk.variable} grain`}>
+        <a href="#main" className="skip-link">Skip to content</a>
         {children}
       </body>
     </html>

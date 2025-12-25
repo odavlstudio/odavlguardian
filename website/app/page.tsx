@@ -1,17 +1,9 @@
-"use client";
-
-import Link from "next/link";
-import dynamic from "next/dynamic";
-
-// Content rewritten for clarity and accuracy per Phase 7.1
-
-const ProgressBar = dynamic(() => import("../components/ProgressBar"), { ssr: false });
+// Server Component page: split client-only logic (ProgressBar removed)
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
   return (
     <div className="page">
-      <ProgressBar />
-
       <header className="nav-bar shell">
         <div className="brand">
           <span className="marker" aria-hidden="true" />
@@ -40,7 +32,7 @@ export default function Page() {
         </div>
       </header>
 
-      <main className="shell">
+      <main id="main" className="shell">
         <section className="hero">
           <div className="hero-grid">
             <div>
@@ -97,21 +89,21 @@ export default function Page() {
             <h3 style={{ marginTop: 24, marginBottom: 8, fontSize: 16, fontWeight: 600 }}>Step 4 — Guardian detects breakage</h3>
             <p style={{ marginBottom: 16 }}>Guardian observes what happens during execution and flags issues:</p>
             <ul className="list" role="list" style={{ marginTop: 8, marginBottom: 16 }}>
-              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Navigation failures — pages don't load or redirect incorrectly</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Navigation failures — pages don&#39;t load or redirect incorrectly</span></li>
               <li className="list-item"><span className="dot" aria-hidden="true" /><span>Submission failures — forms fail to submit or error unexpectedly</span></li>
-              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Visual issues — elements don't appear or layout breaks</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Visual issues — elements don&#39;t appear or layout breaks</span></li>
               <li className="list-item"><span className="dot" aria-hidden="true" /><span>Timeouts — flows hang or take too long</span></li>
-              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Unexpected behavior — flows don't complete as expected</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>Unexpected behavior — flows don&#39;t complete as expected</span></li>
             </ul>
             
             <h3 style={{ marginTop: 24, marginBottom: 8, fontSize: 16, fontWeight: 600 }}>Step 5 — A human-readable report is generated</h3>
             <p style={{ marginBottom: 16 }}>Guardian outputs an HTML report. No raw logs. No data dashboards. Just clear findings with screenshots, error messages, and context. The report is designed for developers and decision makers to act on immediately.</p>
             
             <h3 style={{ marginTop: 32, marginBottom: 12, fontSize: 16, fontWeight: 600, borderTop: "1px solid var(--border-color)", paddingTop: 24 }}>What Guardian does NOT do</h3>
-            <p style={{ marginBottom: 16 }}>Clarity matters. Here's what Guardian is not:</p>
+            <p style={{ marginBottom: 16 }}>Clarity matters. Here&#39;s what Guardian is not:</p>
             <ul className="list" role="list" style={{ marginTop: 8 }}>
               <li className="list-item"><span className="dot" aria-hidden="true" /><span>It is not load testing — Guardian checks one flow at a time, not concurrent traffic patterns</span></li>
-              <li className="list-item"><span className="dot" aria-hidden="true" /><span>It is not monitoring production traffic — Guardian runs when you trigger it, it doesn't watch live users</span></li>
+              <li className="list-item"><span className="dot" aria-hidden="true" /><span>It is not monitoring production traffic — Guardian runs when you trigger it, it doesn&#39;t watch live users</span></li>
               <li className="list-item"><span className="dot" aria-hidden="true" /><span>It is not a SaaS service — Guardian runs locally or in your CI. No cloud dependency. No accounts required</span></li>
               <li className="list-item"><span className="dot" aria-hidden="true" /><span>It does not replace unit or E2E tests — Guardian is a complement, testing the real flow end-to-end</span></li>
             </ul>
