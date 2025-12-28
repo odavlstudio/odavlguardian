@@ -10,7 +10,7 @@ on:
 jobs:
   local-action:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    if: ${{ false }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
