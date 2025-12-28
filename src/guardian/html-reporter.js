@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getFounderBadgeHTML } = require('../founder/founder-tracker');
 
 class GuardianHTMLReporter {
   /**
@@ -207,6 +208,7 @@ class GuardianHTMLReporter {
             <div class="subtitle">Market Reality Testing Report</div>
         </div>
 
+        ${getFounderBadgeHTML()}
         ${this.generateVerdictSection(jsonReport)}
         ${this.generateMetricsSection(jsonReport)}
         ${this.generateReasonsSection(jsonReport)}

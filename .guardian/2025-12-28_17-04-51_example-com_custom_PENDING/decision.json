@@ -1,0 +1,299 @@
+{
+  "runId": "2025-12-28_17-04-51_example-com_custom_PENDING",
+  "url": "https://example.com",
+  "timestamp": "2025-12-28T16:05:23.952Z",
+  "preset": "landing",
+  "policyName": "custom",
+  "finalVerdict": "PARTIAL",
+  "exitCode": 1,
+  "reasons": [
+    {
+      "code": "FLOW_FAILURE",
+      "message": "Flow executions failed: signup_flow, login_flow, checkout_flow."
+    },
+    {
+      "code": "MARKET_IMPACT",
+      "message": "Market impact severity observed: WARNING."
+    },
+    {
+      "code": "OBSERVED",
+      "message": "Observed 1 attempted flow(s); successful=1, failed=0, friction=0."
+    },
+    {
+      "code": "PARTIAL_SCOPE",
+      "message": "Some flows observed (site_smoke), but at least one flow failed or could not be confirmed."
+    },
+    {
+      "code": "POLICY",
+      "message": "⚠️  Policy evaluation WARNING (exit code 2)"
+    }
+  ],
+  "resolved": {
+    "presetId": "landing",
+    "policySource": "preset:landing",
+    "policyId": "custom",
+    "policyHash": "964c3931b570d1d147d6f27cb1b75e785aba740e2fb3b01b859d4d809d11527a",
+    "mediaRequirements": {
+      "requireScreenshots": true,
+      "requireTraces": false,
+      "minCompleteness": 0.6,
+      "minIntegrity": 0.7
+    },
+    "attemptPlan": {
+      "enabled": [
+        "site_smoke",
+        "primary_ctas",
+        "contact_discovery_v2",
+        "contact_form",
+        "language_switch",
+        "newsletter_signup"
+      ],
+      "disabled": [
+        "signup",
+        "login",
+        "checkout"
+      ],
+      "userFiltered": [],
+      "missing": []
+    },
+    "coverage": {
+      "total": 6,
+      "executed": 1,
+      "executedCount": 1,
+      "enabledPlannedCount": 6,
+      "disabledPlannedCount": 0,
+      "skippedNotApplicable": 0,
+      "skippedMissing": 0,
+      "skippedUserFiltered": 3,
+      "skippedDisabledByPreset": 0,
+      "disabled": 0
+    },
+    "evidenceMetrics": {
+      "completeness": 0.16666666666666666,
+      "integrity": 1,
+      "hashedFiles": 40,
+      "totalFiles": 40,
+      "screenshotsEnabled": true,
+      "tracesEnabled": true
+    }
+  },
+  "attestation": {
+    "hash": "28af3f77616d24255155e5f7bc780a8eee31b7d3ea1eecbbcc5c680339645536",
+    "policyHash": "964c3931b570d1d147d6f27cb1b75e785aba740e2fb3b01b859d4d809d11527a",
+    "snapshotHash": "0af196661f4b2345939a5646a9a1b6c6295ccdaf56f3f54dadf95a52270bde63",
+    "manifestHash": "74d16c38cc886a6e802d3f52875c40b28616de96156a51258ee9afcce95ac8b6",
+    "runId": "2025-12-28_17-04-51_example-com_custom_PENDING"
+  },
+  "counts": {
+    "attemptsExecuted": 1,
+    "successful": 1,
+    "failed": 0,
+    "skipped": 5,
+    "nearSuccess": 0
+  },
+  "inputs": {
+    "policy": {
+      "passed": false,
+      "exitCode": 2,
+      "reasons": [
+        "Coverage gaps detected: 5 of 6 attempts not executed"
+      ],
+      "summary": "⚠️  Policy evaluation WARNING (exit code 2)",
+      "counts": {
+        "critical": 0,
+        "warning": 3,
+        "info": 0,
+        "softFailures": 0,
+        "totalRisk": 3
+      }
+    },
+    "baseline": {
+      "regressions": {},
+      "improvements": {},
+      "attemptsDriftCount": 0
+    },
+    "market": {
+      "highestSeverity": "WARNING",
+      "topRisks": [
+        {
+          "attemptId": "signup_flow",
+          "validatorId": "outcome_signup_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "signup_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "login_flow",
+          "validatorId": "outcome_login_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "login_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "checkout_flow",
+          "validatorId": "outcome_checkout_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "checkout_flow attempt FAILED - user could not complete goal"
+        }
+      ],
+      "countsBySeverity": {
+        "CRITICAL": 0,
+        "WARNING": 3,
+        "INFO": 0
+      },
+      "totalRiskCount": 3,
+      "allRisks": [
+        {
+          "attemptId": "signup_flow",
+          "validatorId": "outcome_signup_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "signup_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "login_flow",
+          "validatorId": "outcome_login_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "login_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "checkout_flow",
+          "validatorId": "outcome_checkout_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "checkout_flow attempt FAILED - user could not complete goal"
+        }
+      ]
+    },
+    "flows": {
+      "total": 3,
+      "failures": 3,
+      "frictions": 0
+    }
+  },
+  "coverage": {
+    "total": 6,
+    "executed": 1,
+    "gaps": 5,
+    "skipped": [
+      {
+        "attempt": "primary_ctas",
+        "reason": "Not executed"
+      },
+      {
+        "attempt": "contact_discovery_v2",
+        "reason": "Not executed"
+      },
+      {
+        "attempt": "contact_form",
+        "reason": "No contact form detected",
+        "code": "USER_FILTERED"
+      },
+      {
+        "attempt": "language_switch",
+        "reason": "No language switch detected",
+        "code": "USER_FILTERED"
+      },
+      {
+        "attempt": "newsletter_signup",
+        "reason": "No newsletter signup detected",
+        "code": "USER_FILTERED"
+      }
+    ],
+    "disabled": []
+  },
+  "auditSummary": {
+    "tested": [
+      "site_smoke"
+    ],
+    "notTested": {
+      "disabledByPreset": [],
+      "userFiltered": [
+        "contact_form",
+        "language_switch",
+        "newsletter_signup"
+      ],
+      "notApplicable": [],
+      "missing": []
+    }
+  },
+  "sections": {
+    "Final Verdict": {
+      "verdict": "PARTIAL",
+      "exitCode": 1,
+      "explanation": "Evidence is mixed: 3 failed flow(s); policy not satisfied.",
+      "whyNot": [
+        "Not OBSERVED because at least one failure, friction, or policy issue remains.",
+        "Not INSUFFICIENT_DATA because 1 attempt(s) executed and produced evidence."
+      ],
+      "reasons": [
+        "FLOW_FAILURE: Flow executions failed: signup_flow, login_flow, checkout_flow.",
+        "MARKET_IMPACT: Market impact severity observed: WARNING.",
+        "OBSERVED: Observed 1 attempted flow(s); successful=1, failed=0, friction=0.",
+        "PARTIAL_SCOPE: Some flows observed (site_smoke), but at least one flow failed or could not be confirmed.",
+        "POLICY: ⚠️  Policy evaluation WARNING (exit code 2)"
+      ]
+    },
+    "What Guardian Observed": {
+      "summary": "Executed 1 attempt(s): site_smoke (SUCCESS).",
+      "details": [
+        "Executed 1 attempt(s): site_smoke (SUCCESS)."
+      ]
+    },
+    "What Guardian Could Not Confirm": {
+      "summary": "Flow failures: checkout_flow, login_flow, signup_flow.",
+      "details": [
+        "Flow failures: checkout_flow, login_flow, signup_flow.",
+        "Policy check failed: ⚠️  Policy evaluation WARNING (exit code 2)",
+        "Coverage gaps: 5 planned attempt(s) not observed."
+      ]
+    },
+    "Evidence Summary": {
+      "summary": "Attempt outcomes: executed=1, success=1, failed=0, skipped=5.",
+      "details": [
+        "Attempt outcomes: executed=1, success=1, failed=0, skipped=5.",
+        "Flow outcomes: success=0, failures=3, friction=0.",
+        "Market severity observed: WARNING.",
+        "Policy evaluation: failed (exit 2).",
+        "Baseline regressions: none."
+      ]
+    },
+    "Limits of This Run": {
+      "summary": "Coverage: 1/6 attempts executed; gaps=5.",
+      "details": [
+        "Coverage: 1/6 attempts executed; gaps=5.",
+        "User-filtered skips: 3."
+      ]
+    }
+  },
+  "explanation": {
+    "verdict": "PARTIAL",
+    "exitCode": 1,
+    "explanation": "Evidence is mixed: 3 failed flow(s); policy not satisfied.",
+    "whyNot": [
+      "Not OBSERVED because at least one failure, friction, or policy issue remains.",
+      "Not INSUFFICIENT_DATA because 1 attempt(s) executed and produced evidence."
+    ],
+    "reasons": [
+      "FLOW_FAILURE: Flow executions failed: signup_flow, login_flow, checkout_flow.",
+      "MARKET_IMPACT: Market impact severity observed: WARNING.",
+      "OBSERVED: Observed 1 attempted flow(s); successful=1, failed=0, friction=0.",
+      "PARTIAL_SCOPE: Some flows observed (site_smoke), but at least one flow failed or could not be confirmed.",
+      "POLICY: ⚠️  Policy evaluation WARNING (exit code 2)"
+    ]
+  }
+}

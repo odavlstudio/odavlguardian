@@ -1,0 +1,72 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 0.2.1)'
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Check NPM token
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "❌ NPM_TOKEN secret is not configured"
+            echo "To publish to npm, add NPM_TOKEN secret to GitHub repository settings:"
+            echo "1. Generate token at https://npmjs.com/settings/~/tokens"
+            echo "2. Add as repository secret: NPM_TOKEN"
+            exit 1
+          fi
+          echo "✅ NPM_TOKEN is configured"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:all
+
+      - name: Build (if needed)
+        run: |
+          if [ -f "build.js" ]; then
+            node build.js
+          fi
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body: |
+            Published to npm: [@odavl/guardian](https://www.npmjs.com/package/@odavl/guardian)
+            
+            Install: `npm install -g @odavl/guardian`
+            
+            See [CHANGELOG.md](./CHANGELOG.md) for details.
+          files: |
+            package.json
+            README.md
+            CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

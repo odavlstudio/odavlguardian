@@ -35,9 +35,43 @@ class SnapshotBuilder {
   }
 
   /**
+   * Set unified verdict object
+   */
+  setVerdict(verdict) {
+    if (!verdict) return;
+    this.snapshot.verdict = {
+      verdict: verdict.verdict,
+      confidence: verdict.confidence,
+      why: verdict.why || '',
+      keyFindings: Array.isArray(verdict.keyFindings) ? verdict.keyFindings.slice(0, 7) : [],
+      evidence: verdict.evidence || {},
+      limits: Array.isArray(verdict.limits) ? verdict.limits.slice(0, 6) : []
+    };
+  }
+
+  /**
    * Add attempt result to snapshot
    */
   addAttempt(attemptResult, artifactDir) {
+    // Handle NOT_APPLICABLE and DISCOVERY_FAILED attempts
+    if (attemptResult.outcome === 'NOT_APPLICABLE' || attemptResult.outcome === 'DISCOVERY_FAILED') {
+      this.snapshot.attempts.push({
+        attemptId: attemptResult.attemptId,
+        attemptName: attemptResult.attemptName,
+        goal: attemptResult.goal,
+        outcome: attemptResult.outcome,
+        executed: false,
+        skipReason: attemptResult.skipReason || (attemptResult.outcome === 'NOT_APPLICABLE' ? 'Feature not present' : 'Element discovery failed'),
+        skipReasonCode: attemptResult.skipReasonCode,
+        discoverySignals: attemptResult.discoverySignals || {},
+        totalDurationMs: attemptResult.totalDurationMs || 0,
+        stepCount: attemptResult.stepCount || 0,
+        failedStepIndex: -1,
+        friction: null
+      });
+      return; // Don't create signals for non-applicable attempts
+    }
+
     // Phase 7.4: Handle SKIPPED attempts (don't add as signal)
     if (attemptResult.outcome === 'SKIPPED') {
       this.snapshot.attempts.push({
@@ -45,7 +79,9 @@ class SnapshotBuilder {
         attemptName: attemptResult.attemptName,
         goal: attemptResult.goal,
         outcome: 'SKIPPED',
+        executed: false,
         skipReason: attemptResult.skipReason || 'Prerequisites not met',
+        skipReasonCode: attemptResult.skipReasonCode,
         totalDurationMs: 0,
         stepCount: 0,
         failedStepIndex: -1,
@@ -71,10 +107,17 @@ class SnapshotBuilder {
       attemptName: attemptResult.attemptName,
       goal: attemptResult.goal,
       outcome: attemptResult.outcome,
+      executed: true,
+      discoverySignals: attemptResult.discoverySignals || {},
       totalDurationMs: attemptResult.attemptResult?.totalDurationMs || 0,
       stepCount: (attemptResult.steps || []).length,
       failedStepIndex: (attemptResult.steps || []).findIndex(s => s.status === 'failed'),
-      friction: attemptResult.friction || null
+      friction: attemptResult.friction || null,
+      evidenceSummary: {
+        screenshots: (attemptResult.steps || []).reduce((sum, s) => sum + (Array.isArray(s.screenshots) ? s.screenshots.length : 0), 0),
+        validators: Array.isArray(attemptResult.validators) ? attemptResult.validators.length : 0,
+        tracesCaptured: attemptResult.tracePath ? 1 : 0
+      }
     });
 
     // Track artifacts
@@ -82,7 +125,8 @@ class SnapshotBuilder {
       this.snapshot.evidence.attemptArtifacts[attemptResult.attemptId] = {
         reportJson: path.join(attemptResult.attemptId, 'attempt-report.json'),
         reportHtml: path.join(attemptResult.attemptId, 'attempt-report.html'),
-        screenshotDir: path.join(attemptResult.attemptId, 'attempt-screenshots')
+        screenshotDir: path.join(attemptResult.attemptId, 'attempt-screenshots'),
+        attemptJson: attemptResult.attemptJsonPath ? path.relative(artifactDir, attemptResult.attemptJsonPath) : undefined
       };
     }
 

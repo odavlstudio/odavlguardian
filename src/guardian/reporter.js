@@ -25,39 +25,26 @@ class GuardianReporter {
 
   createReport(crawlResult, baseUrl) {
     const { visited, totalDiscovered, totalVisited } = crawlResult;
-    
-    const coverage = totalDiscovered > 0 
+
+    const coverage = totalDiscovered > 0
       ? parseFloat(((totalVisited / totalDiscovered) * 100).toFixed(2))
       : 0;
-    
-    // Calculate confidence
-    let confidenceLevel = 'LOW';
-    if (coverage >= 85) {
-      confidenceLevel = 'HIGH';
-    } else if (coverage >= 60) {
-      confidenceLevel = 'MEDIUM';
-    }
-    
-    // Calculate decision
-    let decision = 'READY';
-    if (coverage < 30) {
-      decision = 'DO_NOT_LAUNCH';
-    } else if (coverage < 60) {
-      decision = 'INSUFFICIENT_CONFIDENCE';
-    }
-    
-    // Check for critical errors (server errors only, not 404s)
+
     const failedPages = visited.filter(p => p.status && p.status >= 500);
-    if (failedPages.length > 0) {
-      decision = 'DO_NOT_LAUNCH';
-    }
-    
+    const observedPages = visited.filter(p => p.status && p.status < 500);
+
     const reasons = [];
-    if (coverage < 30) reasons.push(`Low coverage (${coverage}%)`);
-    if (failedPages.length > 0) reasons.push(`${failedPages.length} pages failed to load`);
-    if (coverage >= 60) reasons.push(`Coverage is ${coverage}%`);
-    if (failedPages.length === 0 && coverage >= 60) reasons.push('All visited pages loaded successfully');
-    
+    reasons.push(`Observed page reachability only: visited ${totalVisited} page(s), discovered ${totalDiscovered}, coverage ${coverage}%.`);
+    if (failedPages.length > 0) {
+      reasons.push(`${failedPages.length} page(s) returned server errors or navigation failures.`);
+    }
+    if (observedPages.length > 0) {
+      reasons.push(`HTTP responses observed for ${observedPages.length} page(s); no user flows or form submissions were executed.`);
+    }
+    reasons.push('No end-to-end user flows were validated; results are limited to link discovery and HTTP status observations.');
+
+    const decision = 'INSUFFICIENT_DATA';
+
     return {
       version: 'mvp-0.1',
       timestamp: new Date().toISOString(),
@@ -69,12 +56,12 @@ class GuardianReporter {
         failedPages: failedPages.length
       },
       confidence: {
-        level: confidenceLevel,
-        reasoning: `Coverage is ${coverage}% with ${failedPages.length} failed pages`
+        level: 'LOW',
+        reasoning: 'Only page reachability was observed; no user flows were confirmed.'
       },
       finalJudgment: {
         decision: decision,
-        reasons: reasons.length > 0 ? reasons : ['All checks passed']
+        reasons: reasons
       },
       pages: visited.map((p, i) => ({
         index: i + 1,
@@ -100,17 +87,16 @@ class GuardianReporter {
       ? parseFloat(((stepsExecuted / stepsTotal) * 100).toFixed(2))
       : 0;
     
-    // For flows: success = READY, failure = DO_NOT_LAUNCH
-    const decision = success ? 'READY' : 'DO_NOT_LAUNCH';
-    const confidenceLevel = success ? 'HIGH' : 'LOW';
-    
+    const decision = success ? 'OBSERVED' : 'PARTIAL';
+    const confidenceLevel = success ? 'MEDIUM' : 'LOW';
+
     const reasons = [];
     if (success) {
-      reasons.push(`Flow "${flowName}" completed successfully`);
-      reasons.push(`All ${stepsTotal} steps executed`);
+      reasons.push(`Observed flow "${flowName}" end-to-end; ${stepsExecuted}/${stepsTotal} steps completed.`);
+      reasons.push('No critical failures detected in this flow.');
     } else {
-      reasons.push(`Flow "${flowName}" failed at step ${failedStep}`);
-      reasons.push(`Error: ${error}`);
+      reasons.push(`Flow "${flowName}" did not complete; stopped at step ${failedStep || 'unknown'} with error: ${error || 'unspecified failure'}.`);
+      reasons.push('This run observed only the partial flow execution above; other flows were not validated.');
     }
     
     return {
@@ -135,8 +121,8 @@ class GuardianReporter {
       confidence: {
         level: confidenceLevel,
         reasoning: success 
-          ? `Flow completed successfully (${stepsExecuted}/${stepsTotal} steps)` 
-          : `Flow failed at step ${failedStep}: ${error}`
+          ? `Observed single flow execution; steps completed ${stepsExecuted}/${stepsTotal}.` 
+          : `Flow incomplete; failed at step ${failedStep || 'unknown'} with error: ${error || 'unspecified failure'}.`
       },
       finalJudgment: {
         decision: decision,

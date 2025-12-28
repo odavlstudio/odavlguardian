@@ -1,125 +1,95 @@
 /**
- * CLI Summary Module
- * 
- * Generate human-friendly CLI summaries at the end of Guardian runs.
- * Shows critical info, top risks, and actionable next steps.
- */
-
-/**
- * Generate final CLI summary
- * @param {object} snapshot - Guardian snapshot
- * @param {object} policyEval - Policy evaluation result
- * @param {object} baselineCheckResult - Optional baseline check result
- * @returns {string} Formatted CLI summary
- */
-function generateCliSummary(snapshot, policyEval, baselineCheckResult) {
-  if (!snapshot) {
-    return 'No snapshot data available.';
-  }
-
+// STRICT CLI SUMMARY: factual, artifact-traceable lines only
+function generateCliSummary(snapshot, policyEval, baselineCheckResult, options = {}) {
+  if (!snapshot) return 'No snapshot data available.';
   const meta = snapshot.meta || {};
-  const marketImpact = snapshot.marketImpactSummary || {};
-  const intelligence = snapshot.intelligence || {};
-  // Prefer deterministic counts from breakage intelligence (attempts + flows)
-  const failures = Array.isArray(intelligence.failures) ? intelligence.failures : [];
-  const counts = {
-    CRITICAL: failures.filter(f => f.severity === 'CRITICAL').length,
-    WARNING: failures.filter(f => f.severity === 'WARNING').length,
-    INFO: failures.filter(f => f.severity === 'INFO').length
-  };
-  const topRisks = marketImpact.topRisks || [];
-  const attempts = snapshot.attempts || [];
-  const discovery = snapshot.discovery || {};
+  const coverage = snapshot.coverage || {};
+  const counts = coverage.counts || {};
+  const evidence = snapshot.evidenceMetrics || {};
+  const resolved = snapshot.resolved || {};
 
   let output = '\n';
   output += '━'.repeat(70) + '\n';
   output += '🛡️  Guardian Reality Summary\n';
   output += '━'.repeat(70) + '\n\n';
 
-  // Target URL
   output += `Target: ${meta.url || 'unknown'}\n`;
   output += `Run ID: ${meta.runId || 'unknown'}\n\n`;
 
-  // Risk Counts
-  output += '📊 Risk Summary:\n';
-  output += `  🚨 CRITICAL: ${counts.CRITICAL}`;
-  if (counts.CRITICAL > 0) {
-    // Derive domain strictly from the highest-severity risk item (first CRITICAL failure)
-    const severityOrder = { CRITICAL: 3, WARNING: 2, INFO: 1 };
-    const topCritical = [...failures]
-      .filter(f => f.severity === 'CRITICAL')
-      .sort((a, b) => (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0))[0];
-    if (topCritical && topCritical.domain) {
-      const labelMap = { REVENUE: 'Revenue impact', LEAD: 'Lead gen impact', TRUST: 'Trust/security', UX: 'User experience' };
-      const domainLabel = labelMap[topCritical.domain] || 'Impact detected';
-      output += ` (${domainLabel})`;
+  const pe = snapshot.policyEvaluation || {};
+  output += `Policy Verdict: ${meta.result || (pe.passed ? 'PASSED' : pe.exitCode === 2 ? 'WARN' : 'FAILED')}\n`;
+  output += `Exit Code: ${pe.exitCode ?? 'unknown'}\n`;
+
+  const planned = coverage.total ?? (resolved.coverage?.total) ?? 'unknown';
+  const executed = counts.executedCount ?? (resolved.coverage?.executedCount) ?? coverage.executed ?? 'unknown';
+  output += `Executed / Planned: ${executed} / ${planned}\n`;
+
+  const completeness = evidence.completeness ?? resolved.evidenceMetrics?.completeness ?? 'unknown';
+  const integrity = evidence.integrity ?? resolved.evidenceMetrics?.integrity ?? 'unknown';
+  output += `Coverage Completeness: ${typeof completeness === 'number' ? completeness.toFixed(4) : completeness}\n`;
+  output += `Evidence Integrity: ${typeof integrity === 'number' ? integrity.toFixed(4) : integrity}\n`;
+
+  if (meta.attestation?.hash) {
+    output += `Attestation: ${meta.attestation.hash}\n`;
+  // STRICT CLI SUMMARY: factual, artifact-traceable lines only
+  function generateCliSummary(snapshot, policyEval, baselineCheckResult, options = {}) {
+    if (!snapshot) return 'No snapshot data available.';
+    const meta = snapshot.meta || {};
+    const coverage = snapshot.coverage || {};
+    const counts = coverage.counts || {};
+    const evidence = snapshot.evidenceMetrics || {};
+    const resolved = snapshot.resolved || {};
+
+    let output = '\n';
+    output += '━'.repeat(70) + '\n';
+    output += '🛡️  Guardian Reality Summary\n';
+    output += '━'.repeat(70) + '\n\n';
+
+    output += `Target: ${meta.url || 'unknown'}\n`;
+    output += `Run ID: ${meta.runId || 'unknown'}\n\n`;
+
+    const pe = snapshot.policyEvaluation || {};
+    output += `Policy Verdict: ${meta.result || (pe.passed ? 'PASSED' : pe.exitCode === 2 ? 'WARN' : 'FAILED')}\n`;
+    output += `Exit Code: ${pe.exitCode ?? 'unknown'}\n`;
+
+    const planned = coverage.total ?? (resolved.coverage?.total) ?? 'unknown';
+    const executed = counts.executedCount ?? (resolved.coverage?.executedCount) ?? coverage.executed ?? 'unknown';
+    output += `Executed / Planned: ${executed} / ${planned}\n`;
+
+    const completeness = evidence.completeness ?? resolved.evidenceMetrics?.completeness ?? 'unknown';
+    const integrity = evidence.integrity ?? resolved.evidenceMetrics?.integrity ?? 'unknown';
+    output += `Coverage Completeness: ${typeof completeness === 'number' ? completeness.toFixed(4) : completeness}\n`;
+    output += `Evidence Integrity: ${typeof integrity === 'number' ? integrity.toFixed(4) : integrity}\n`;
+
+    if (meta.attestation?.hash) {
+      output += `Attestation: ${meta.attestation.hash}\n`;
     }
-  }
-  output += '\n';
-  output += `  ⚠️  WARNING:  ${counts.WARNING}`;
-  if (counts.WARNING > 0) output += ' (Potential UX impact)';
-  output += '\n';
-  output += `  ℹ️  INFO:     ${counts.INFO}`;
-  if (counts.INFO > 0) output += ' (Minor issues)';
-  output += '\n\n';
 
-  // Top Risks (up to 3)
-  // Top Issues (strict separation of attempts vs flows)
-  const severityOrderTI = { CRITICAL: 3, WARNING: 2, INFO: 1 };
-  const topIssues = [...failures]
-    .sort((a, b) => (severityOrderTI[b.severity] || 0) - (severityOrderTI[a.severity] || 0))
-    .slice(0, 3);
-  if (topIssues.length > 0) {
-    output += '🔥 Top Issues:\n';
-    topIssues.forEach((issue, idx) => {
-      const tag = issue.source === 'flow' ? '[FLOW]' : '[ATTEMPT]';
-      const status = issue.outcome === 'FAILURE' ? 'FAILED' : (issue.outcome || 'ISSUE');
-      const title = issue.name || issue.id || 'Unknown';
-      output += `   ${idx + 1}. ${tag} ${title} ${status}\n`;
-      // Include one-line reason for extra clarity
-      const reason = issue.primaryHint || issue.hints?.[0] || '';
-      if (reason) {
-        output += `      Reason: ${reason}\n`;
-      }
-    });
-    output += '\n';
-  }
+    // Audit Summary
+    const executedAttempts = (snapshot.attempts || []).filter(a => a.executed).map(a => a.attemptId);
+    output += '\nAudit Summary:\n';
+    output += `  Tested (${executedAttempts.length}): ${executedAttempts.join(', ') || 'none'}\n`;
+    const skippedDisabled = (coverage.skippedDisabledByPreset || []).map(s => s.attempt);
+    const skippedUserFiltered = (coverage.skippedUserFiltered || []).map(s => s.attempt);
+    const skippedNotApplicable = (coverage.skippedNotApplicable || []).map(s => s.attempt);
+    const skippedMissing = (coverage.skippedMissing || []).map(s => s.attempt);
+    output += `  Not Tested — DisabledByPreset (${skippedDisabled.length}): ${skippedDisabled.join(', ') || 'none'}\n`;
+    output += `  Not Tested — UserFiltered (${skippedUserFiltered.length}): ${skippedUserFiltered.join(', ') || 'none'}\n`;
+    output += `  Not Tested — NotApplicable (${skippedNotApplicable.length}): ${skippedNotApplicable.join(', ') || 'none'}\n`;
+    output += `  Not Tested — Missing (${skippedMissing.length}): ${skippedMissing.join(', ') || 'none'}\n`;
 
-  // Attempt Summary
-  // Phase 7.4: Include SKIPPED in summary
-  const successfulAttempts = attempts.filter(a => a.outcome === 'SUCCESS').length;
-  const skippedAttempts = attempts.filter(a => a.outcome === 'SKIPPED').length;
-  const totalAttempts = attempts.length;
-  if (totalAttempts > 0) {
-    output += '🎯 Attempts:\n';
-    output += `   ${successfulAttempts}/${totalAttempts} successful`;
-    if (successfulAttempts < totalAttempts) {
-      const failed = totalAttempts - successfulAttempts - skippedAttempts;
-      if (failed > 0) output += ` (${failed} failed)`;
-      if (skippedAttempts > 0) output += ` (${skippedAttempts} skipped)`;
+    const reasons = Array.isArray(pe.reasons) ? pe.reasons : [];
+    if (reasons.length > 0) {
+      output += '\nPolicy Reasons:\n';
+      reasons.forEach(r => {
+        if (typeof r === 'string') output += `  • ${r}\n`; else if (r.message) output += `  • ${r.message}\n`; else output += `  • ${JSON.stringify(r)}\n`;
+      });
     }
-    output += '\n\n';
-  }
 
-  // Flow Submit Outcomes (Wave 1.3)
-  const flows = snapshot.flows || [];
-  const flowsWithEval = flows.filter(f => f.successEval);
-  if (flowsWithEval.length > 0) {
-    output += '🚦 Submit Outcomes:\n';
-    flowsWithEval.slice(0, 5).forEach(f => {
-      const status = (f.successEval.status || 'unknown').toUpperCase();
-      const confidence = f.successEval.confidence || 'low';
-      output += `   ${f.flowName}: ${status} (confidence: ${confidence})\n`;
-      const reasons = (f.successEval.reasons || []).slice(0, 3);
-      if (reasons.length) {
-        output += '     Reasons:\n';
-        reasons.forEach(r => { output += `       - ${r}\n`; });
-      }
-      // Compact evidence summary
-      const ev = f.successEval.evidence || {};
-      const net = Array.isArray(ev.network) ? ev.network : [];
-      const primary = net.find(n => (n.method === 'POST' || n.method === 'PUT') && n.status != null) || net[0];
-      const reqLine = (() => {
+    output += '\n📁 Full report: ' + (meta.runId ? `artifacts/${meta.runId}/` : 'See artifacts/') + '\n\n';
+    output += '━'.repeat(70) + '\n';
+    return output;
+  }
         if (!primary) return null;
         try { const p = new URL(primary.url); return `request: ${primary.method} ${p.pathname} → ${primary.status}`; }
         catch { return `request: ${primary.method} ${primary.url} → ${primary.status}`; }
@@ -260,8 +230,8 @@ function generateCliSummary(snapshot, policyEval, baselineCheckResult) {
 /**
  * Print summary to console
  */
-function printCliSummary(snapshot, policyEval, baselineCheckResult) {
-  const summary = generateCliSummary(snapshot, policyEval, baselineCheckResult);
+function printCliSummary(snapshot, policyEval, baselineCheckResult, options = {}) {
+  const summary = generateCliSummary(snapshot, policyEval, baselineCheckResult, options);
   console.log(summary);
 }
 

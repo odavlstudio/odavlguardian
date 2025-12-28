@@ -17,8 +17,11 @@ function formatCiSummary({ flowResults = [], diffResult = null, baselineCreated 
   lines.push('CI MODE: ON');
   lines.push(formatRunSummary({ flowResults, diffResult, baselineCreated, exitCode }, { label: 'Summary' }));
 
+  const verdict = exitCode === 0 ? 'OBSERVED' : exitCode === 1 ? 'PARTIAL' : 'INSUFFICIENT_DATA';
+  lines.push(`Result: ${verdict}`);
+
   if (exitCode !== 0) {
-    lines.push('Why CI failed:');
+    lines.push('Observed issues:');
     const troubled = flowResults.filter(f => f.outcome === 'FAILURE' || f.outcome === 'FRICTION');
     troubled.slice(0, maxReasons).forEach(flow => {
       const reason = pickReason(flow);
@@ -27,8 +30,6 @@ function formatCiSummary({ flowResults = [], diffResult = null, baselineCreated 
     if (troubled.length > maxReasons) {
       lines.push(` - … ${troubled.length - maxReasons} more issues`);
     }
-  } else {
-    lines.push('Result: PASS');
   }
 
   return lines.join('\n');

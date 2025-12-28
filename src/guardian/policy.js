@@ -51,6 +51,17 @@ function loadPolicy(policyPath = null) {
       CRITICAL: 0,  // Fail if any CRITICAL visual diffs
       WARNING: 999, // Warn if more than 999 WARNING visual diffs
       maxDiffPercent: 25 // Fail if visual change > 25% of page
+    },
+    // Coverage and evidence expectations
+    coverage: {
+      failOnGap: true,
+      warnOnGap: false
+    },
+    evidence: {
+      minCompleteness: 1.0,
+      minIntegrity: 0.9,
+      requireScreenshots: false,
+      requireTraces: false
     }
   };
 
@@ -91,10 +102,30 @@ function loadPolicy(policyPath = null) {
  * Evaluate snapshot against policy
  * Returns { passed: boolean, exitCode: 0|1|2, reasons: string[], summary: string }
  */
-function evaluatePolicy(snapshot, policy) {
+function evaluatePolicy(snapshot, policy, signals = {}) {
   const effectivePolicy = policy || loadPolicy();
   const reasons = [];
   let exitCode = 0;
+
+  // Check for INSUFFICIENT_EVIDENCE verdict - always exit 2 (WARN)
+  const verdict = snapshot.verdict || {};
+  if (verdict.verdict === 'INSUFFICIENT_EVIDENCE') {
+    reasons.push('No meaningful attempts executed; element discovery failed on uninstrumented site or all journeys not applicable');
+    exitCode = 2; // WARN - cannot make a confident decision
+    return {
+      passed: false,
+      exitCode,
+      reasons,
+      summary: '⚠️  Policy evaluation INSUFFICIENT_EVIDENCE (exit code 2)',
+      counts: {
+        critical: 0,
+        warning: 0,
+        info: 0,
+        softFailures: 0,
+        totalRisk: 0
+      }
+    };
+  }
 
   // Extract market impact summary (Phase 3)
   const marketImpact = snapshot.marketImpactSummary || {};
@@ -102,6 +133,13 @@ function evaluatePolicy(snapshot, policy) {
   const warningCount = marketImpact.countsBySeverity?.WARNING || 0;
   const infoCount = marketImpact.countsBySeverity?.INFO || 0;
   const totalRisk = marketImpact.totalRiskCount || 0;
+
+  // Coverage and evidence signals
+  const coverage = signals.coverage || { gaps: 0, total: 0, executed: 0 };
+  const evidenceMetrics = signals.evidence?.metrics || { completeness: 0, integrity: 0 };
+  const missingScreenshots = signals.evidence?.missingScreenshots || false;
+  const missingTraces = signals.evidence?.missingTraces || false;
+  const runtimeSignals = Array.isArray(signals.runtimeSignals) ? signals.runtimeSignals : [];
 
   // Extract soft failures (Phase 2)
   const softFailureCount = snapshot.attempts?.reduce((sum, attempt) => {
@@ -220,6 +258,44 @@ function evaluatePolicy(snapshot, policy) {
   // Evaluate soft failure threshold
   if (!exitCode && softFailureCount > effectivePolicy.softFailureThreshold) {
     reasons.push(`${softFailureCount} soft failure(s) exceed threshold of ${effectivePolicy.softFailureThreshold}`);
+    exitCode = 2;
+  }
+
+  // Coverage gaps (attempts skipped/not applicable)
+  if (!exitCode && effectivePolicy.coverage) {
+    if (effectivePolicy.coverage.failOnGap && coverage.gaps > 0) {
+      reasons.push(`Coverage gaps detected: ${coverage.gaps} of ${coverage.total || 'n/a'} attempts not executed`);
+      exitCode = 1;
+    } else if (effectivePolicy.coverage.warnOnGap && coverage.gaps > 0) {
+      reasons.push(`Coverage gaps detected: ${coverage.gaps} of ${coverage.total || 'n/a'} attempts not executed`);
+      exitCode = 2;
+    }
+  }
+
+  // Evidence completeness/integrity
+  if (!exitCode && effectivePolicy.evidence) {
+    if (evidenceMetrics.completeness < (effectivePolicy.evidence.minCompleteness ?? 1)) {
+      reasons.push(`Evidence completeness ${evidenceMetrics.completeness.toFixed(2)} below policy minimum ${(effectivePolicy.evidence.minCompleteness ?? 1)}`);
+      exitCode = exitCode || (effectivePolicy.evidence.minCompleteness >= 1 ? 1 : 2);
+    }
+    if (evidenceMetrics.integrity < (effectivePolicy.evidence.minIntegrity ?? 0)) {
+      reasons.push(`Evidence integrity ${evidenceMetrics.integrity.toFixed(2)} below policy minimum ${(effectivePolicy.evidence.minIntegrity ?? 0)}`);
+      exitCode = exitCode || 2;
+    }
+    if (effectivePolicy.evidence.requireScreenshots && missingScreenshots) {
+      reasons.push('Screenshots disabled but required by policy');
+      exitCode = 1;
+    }
+    if (effectivePolicy.evidence.requireTraces && missingTraces) {
+      reasons.push('Network traces disabled but required by policy');
+      exitCode = 1;
+    }
+  }
+
+  // Runtime signals (crawl/discovery/system)
+  if (!exitCode && runtimeSignals.length > 0) {
+    const desc = runtimeSignals.map(s => s.description).slice(0, 3).join('; ');
+    reasons.push(`Runtime issues detected: ${desc}`);
     exitCode = 2;
   }
 

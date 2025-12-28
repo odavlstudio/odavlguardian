@@ -3,7 +3,17 @@
  * Phase 3: supports multiple curated attempts
  */
 
-const DEFAULT_ATTEMPTS = ['contact_form', 'language_switch', 'newsletter_signup', 'signup', 'login', 'checkout'];
+const DEFAULT_ATTEMPTS = [
+  'site_smoke',
+  'primary_ctas',
+  'contact_discovery_v2',
+  'contact_form',
+  'language_switch',
+  'newsletter_signup',
+  'signup',
+  'login',
+  'checkout'
+];
 
 const attemptDefinitions = {
   contact_form: {
@@ -156,6 +166,37 @@ const attemptDefinitions = {
       { type: 'pageContainsAnyText', textList: ['order placed', 'order confirmed', 'order confirmed'] },
       { type: 'elementNotVisible', selector: '[data-guardian="checkout-error"], .error, [role="alert"]' }
     ]
+  },
+
+  // Universal Attempts (no instrumentation required)
+  site_smoke: {
+    id: 'site_smoke',
+    name: 'Site Smoke Navigation',
+    goal: 'Probe homepage stability and internal navigation',
+    riskCategory: 'TRUST/UX',
+    source: 'universal',
+    baseSteps: [],
+    successConditions: []
+  },
+
+  primary_ctas: {
+    id: 'primary_ctas',
+    name: 'Primary CTA Coverage',
+    goal: 'Verify primary CTAs navigate correctly',
+    riskCategory: 'LEAD',
+    source: 'universal',
+    baseSteps: [],
+    successConditions: []
+  },
+
+  contact_discovery_v2: {
+    id: 'contact_discovery_v2',
+    name: 'Contact Discovery v2',
+    goal: 'Find contact surfaces (mailto or contact route)',
+    riskCategory: 'TRUST/UX',
+    source: 'universal',
+    baseSteps: [],
+    successConditions: []
   },
 
   // Universal Reality Pack: deterministic, zero-config safety checks

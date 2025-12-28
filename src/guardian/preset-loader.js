@@ -16,15 +16,13 @@ function loadPreset(presetName) {
   const validPresets = ['startup', 'saas', 'enterprise', 'landing-demo'];
   
   if (!presetName || !validPresets.includes(presetName.toLowerCase())) {
-    console.warn(`⚠️  Invalid preset: ${presetName}. Valid presets: ${validPresets.join(', ')}`);
-    return null;
+    throw new Error(`Invalid preset: ${presetName}. Valid presets: ${validPresets.join(', ')}`);
   }
 
   const presetPath = path.join(__dirname, '../../policies', `${presetName.toLowerCase()}.json`);
   
   if (!fs.existsSync(presetPath)) {
-    console.error(`⚠️  Preset file not found: ${presetPath}`);
-    return null;
+    throw new Error(`Preset file not found: ${presetPath}`);
   }
 
   try {
@@ -67,7 +65,12 @@ function parsePolicyOption(policyOption) {
   // Check if it's a preset
   if (optionStr.startsWith('preset:')) {
     const presetName = optionStr.substring(7); // Remove 'preset:' prefix
-    return loadPreset(presetName);
+    try {
+      return loadPreset(presetName);
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
   }
 
   // Otherwise, treat as file path

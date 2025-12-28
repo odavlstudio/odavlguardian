@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2025-12-28T15:41:03.227Z",
+  "files": [
+    {
+      "path": "contact_discovery_v2\\attempt-20251228-154013\\attempt-report.html",
+      "sha256": "be0a6c61050cc425bcabcaf481228fc4df3caf1a7dc45324999f90fb50dacca8"
+    },
+    {
+      "path": "contact_discovery_v2\\attempt-20251228-154013\\attempt-report.json",
+      "sha256": "363285dcb8f7370d7bc9cd9ffe9bcba4d354a85e4ec1c2e60ab2d0b875b86e26"
+    },
+    {
+      "path": "contact_discovery_v2\\attempt-20251228-154013\\attempt.json",
+      "sha256": "722bfa2db8579a6b6672f63ce17f1462cdc1522992b88ae4364b9eecc4506792"
+    },
+    {
+      "path": "contact_discovery_v2\\attempt-20251228-154013\\steps.jsonl",
+      "sha256": "f29a9f7c23989805a17f57e146f30934dcba2d7a71b85bcabc0ff3fcf01c5c9d"
+    },
+    {
+      "path": "contact_discovery_v2\\attempt-20251228-154013\\trace.zip",
+      "sha256": "ca1a1fe0792ef07bb7173b8d830779377001bb17d5835e5c40fc4d2229da17ad"
+    },
+    {
+      "path": "contact_discovery_v2\\attempt-skipped\\attempt-report.html",
+      "sha256": "7b8ae3cba891d945850c2e5418113d7c6a8e4181825f30dcf4283f4462f39b9b"
+    },
+    {
+      "path": "contact_discovery_v2\\attempt-skipped\\attempt-report.json",
+      "sha256": "ca121c16c94eb4f6ff2c6521bb0c5a9e9aa4deb7fc50eaf1899d7ff300777a14"
+    },
+    {
+      "path": "contact_form\\attempt-skipped\\attempt-report.html",
+      "sha256": "ebcef40dcee5c6999e21c864bf9714b9af3590215e9d68f77f2c5ad5520651eb"
+    },
+    {
+      "path": "contact_form\\attempt-skipped\\attempt-report.json",
+      "sha256": "d2efd356fb0fd8a8edeed7f5d3efe862663dc3a44e120cfe2ecf41e7b78b02ba"
+    },
+    {
+      "path": "decision.json",
+      "sha256": "7743b76ba70310ee40b6b112050136ec753f50207f600ce19e7cb6cd1017a460"
+    },
+    {
+      "path": "flows\\checkout_flow\\pages\\flow-step-1.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "flows\\checkout_flow\\pages\\flow-step-2.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "flows\\login_flow\\pages\\flow-step-1.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "flows\\login_flow\\pages\\flow-step-2.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "flows\\signup_flow\\pages\\flow-step-1.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "flows\\signup_flow\\pages\\flow-step-2.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "language_switch\\attempt-skipped\\attempt-report.html",
+      "sha256": "035d93f3acc69c087319a3595cf6b9c3ddd85d0bf0b5b89b178624368506e362"
+    },
+    {
+      "path": "language_switch\\attempt-skipped\\attempt-report.json",
+      "sha256": "c2627b81ac0aa8ca2f4932797f93ba28395c3dbfd978ce816ccc17832a3495e6"
+    },
+    {
+      "path": "market-report.html",
+      "sha256": "1b025bb5ee1ca3c679991580a4f3c450ab84a7b0ba4e0845ba54eed44c3836c7"
+    },
+    {
+      "path": "market-report.json",
+      "sha256": "5350298cb0068723ef048fbade46369752bb2d1dc5ba9c17215aa3c59c7b7937"
+    },
+    {
+      "path": "newsletter_signup\\attempt-skipped\\attempt-report.html",
+      "sha256": "561139d7b29b3eb593e38396cf1d3712ac51e8e72376775a1400bf846f3d6be5"
+    },
+    {
+      "path": "newsletter_signup\\attempt-skipped\\attempt-report.json",
+      "sha256": "dc0ae93d4c8e08b04562f4b55a008e4b921cf880736d70837db9a495da7b12cf"
+    },
+    {
+      "path": "primary_ctas\\attempt-20251228-154013\\attempt-report.html",
+      "sha256": "e908ed5ae499406457c4c7b8f0f89620476db3e5c6a8bb1738ab191bb6d45346"
+    },
+    {
+      "path": "primary_ctas\\attempt-20251228-154013\\attempt-report.json",
+      "sha256": "54d33a0ed283698976a06a1d900a854a77c848891b72822c3b3ab34480c861dc"
+    },
+    {
+      "path": "primary_ctas\\attempt-20251228-154013\\attempt-screenshots\\primary_ctas_home.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "primary_ctas\\attempt-20251228-154013\\attempt.json",
+      "sha256": "34879dec981b12727934bba05cfd75a4ea0d6cc2a5a8c4b0bfb5ccf5bf409331"
+    },
+    {
+      "path": "primary_ctas\\attempt-20251228-154013\\steps.jsonl",
+      "sha256": "7946e90f01d41c8e95e1487f61db592a8006458aa372c9047e677fb5db223a6f"
+    },
+    {
+      "path": "primary_ctas\\attempt-20251228-154013\\trace.zip",
+      "sha256": "47e047c190626572d6018367635fe67b5353851a9567d01b9a78a8d57f3b7e74"
+    },
+    {
+      "path": "primary_ctas\\attempt-skipped\\attempt-report.html",
+      "sha256": "a9bc477f225bae80e6fbc7fb03cc093e2ad3f13308f2b86d3d1bc2e3c65d7866"
+    },
+    {
+      "path": "primary_ctas\\attempt-skipped\\attempt-report.json",
+      "sha256": "3a8a2d372506120f7c26902a06e5d7c6a63dc91831faac787c10af0578806b4e"
+    },
+    {
+      "path": "report.html",
+      "sha256": "abcbba228655b4c8526c3c499fa821c3ca9c3c230a9cb8419a76290cdd3c66ef"
+    },
+    {
+      "path": "site_smoke\\attempt-20251228-154013\\attempt-report.html",
+      "sha256": "aa789abea3bd7a0bf2fafba3db38e59775a6fd9df500922985335a9baafd9d9f"
+    },
+    {
+      "path": "site_smoke\\attempt-20251228-154013\\attempt-report.json",
+      "sha256": "7ba4423b287719bb65eb42cc06ea738f76ebc437613bde66f4a44f56a202e6a3"
+    },
+    {
+      "path": "site_smoke\\attempt-20251228-154013\\attempt-screenshots\\site_smoke_home.jpeg",
+      "sha256": "29cbb9fe7218d3837b0d34422c9f25aab90798b07bb4b6c4559185c780aab38a"
+    },
+    {
+      "path": "site_smoke\\attempt-20251228-154013\\attempt.json",
+      "sha256": "aa73f013ce0a5c4c9f9c577d8d031c199022b94ba4094e432f2092f98975ae48"
+    },
+    {
+      "path": "site_smoke\\attempt-20251228-154013\\steps.jsonl",
+      "sha256": "856feff67ac9d818d956eef94c5e2df55648f06eb58c4c1addb5ba44c39118b5"
+    },
+    {
+      "path": "site_smoke\\attempt-20251228-154013\\trace.zip",
+      "sha256": "823658921b636b7215922d9f1ad06fafb2a05ee702beebe7ee7d78f2f111563f"
+    },
+    {
+      "path": "snapshot.json",
+      "sha256": "f8a8bbbb65523a1d37a9a277d53be06ce2964bc9cc4ba9484324296cf7dc39bf"
+    },
+    {
+      "path": "summary.md",
+      "sha256": "2e8eabc48353688065d7ee47652e374bde14be41ecfb4a29fbb51824d50bdab4"
+    },
+    {
+      "path": "summary.txt",
+      "sha256": "e6e77ff0df6dfac3040508e6f0b3f5c413aed1a3bfd95f31977b648fa9b340e4"
+    }
+  ]
+}

@@ -47,8 +47,8 @@ async function runCheck(baseUrl, artifactsDir, name, attempts) {
       
       assert.strictEqual(result.overallRegressionVerdict, 'REGRESSION_FAILURE', 
         'SUCCESS→FAILURE should be REGRESSION_FAILURE');
-      assert.strictEqual(result.exitCode, 0, 
-        'Exit code is 0 regardless of baseline verdict (flows-only policy)');
+      assert.strictEqual(result.exitCode, 4, 
+        'Regression failure should produce exit code 4');
       
       const regressions = result.comparisons.filter(c => c.regressionType !== 'NO_REGRESSION');
       assert.ok(regressions.length > 0, 
@@ -177,11 +177,13 @@ async function runCheck(baseUrl, artifactsDir, name, attempts) {
       
       assert.strictEqual(result.overallRegressionVerdict, 'REGRESSION_FRICTION', 
         'SUCCESS→FRICTION should be REGRESSION_FRICTION');
-      assert.strictEqual(result.exitCode, 0, 
-        'Exit code is 0 regardless of baseline verdict (flows-only policy)');
+      assert.strictEqual(result.exitCode, 3, 
+        'Friction regression should produce exit code 3');
       
-      const frictionRegs = result.comparisons.filter(c => 
-        c.regressionType.includes('FRICTION'));
+      const frictionRegs = [
+        ...(result.comparisons || []),
+        ...(result.flowComparisons || [])
+      ].filter(c => c.regressionType && c.regressionType.includes('FRICTION'));
       assert.ok(frictionRegs.length > 0, 
         'Should have at least one friction regression');
       
@@ -214,7 +216,7 @@ async function runCheck(baseUrl, artifactsDir, name, attempts) {
     }
 
     // Test 8: Exit code isolation - baseline verdict does not affect exit code
-    console.log('  Test 8: Exit code isolation (baseline never changes exit code)');
+    console.log('  Test 8: Exit code isolation (baseline regressions affect exit code)');
     {
       const baselineName = 'test-exit-isolation';
       // Save baseline with SUCCESS state
@@ -223,14 +225,13 @@ async function runCheck(baseUrl, artifactsDir, name, attempts) {
       // Check with FAILURE state - baseline would indicate regression
       const result = await runCheck(`${fixture.baseUrl}?mode=fail`, artifactsRoot, baselineName, attempts);
       
-      // Key assertion: exit code is 0 even though baseline indicates REGRESSION_FAILURE
-      // Exit code comes from flow outcomes only
-      assert.strictEqual(result.exitCode, 0, 
-        'Exit code must be 0 regardless of baseline regression verdict (flows-only policy)');
+      // Baseline regressions should drive non-zero exit code
+      assert.strictEqual(result.exitCode, 4, 
+        'Exit code should reflect regression failure');
       assert.strictEqual(result.overallRegressionVerdict, 'REGRESSION_FAILURE',
         'Baseline verdict correctly shows REGRESSION_FAILURE');
       
-      console.log('    ✅ Exit code remains 0 despite baseline regressions (flows-only policy)');
+      console.log('    ✅ Exit code reflects baseline regression');
     }
 
     console.log('\n✅ All baseline comparison tests passed');

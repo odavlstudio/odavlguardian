@@ -19,7 +19,8 @@ function isIgnored(filePath, artifactsDir = './artifacts') {
   if (artifactsDir) {
     ignorePrefixes.push(path.normalize(artifactsDir));
   }
-  return parts.some(p => ignorePrefixes.includes(p)) || normalized.includes('market-run');
+  // Ignore any changes within artifacts directory (run outputs)
+  return parts.some(p => ignorePrefixes.includes(p));
 }
 
 function collectWatchPaths(config) {

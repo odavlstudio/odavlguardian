@@ -459,6 +459,60 @@ const HTML_TEMPLATES = {
   </body>
   </html>
     `
+
+    ,
+    // Universal attempt fixtures
+    universalSmoke: () => `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head><meta charset="UTF-8"><title>Universal Smoke</title></head>
+  <body>
+    <header>
+      <nav>
+        <a href="/docs">Docs</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </header>
+    <main>
+      <h1>Universal Smoke Fixture</h1>
+      <p>Contains internal links for smoke navigation.</p>
+    </main>
+    <footer>
+      <a href="/terms">Terms</a>
+    </footer>
+  </body>
+  </html>
+    `,
+
+    universalCta: () => `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head><meta charset="UTF-8"><title>Universal CTA</title></head>
+  <body>
+    <header>
+      <a href="https://github.com/odavlstudio" target="_blank">GitHub</a>
+      <a href="/docs">Docs</a>
+    </header>
+    <main>
+      <button>Get started</button>
+      <a href="/demo">Try Demo</a>
+    </main>
+  </body>
+  </html>
+    `,
+
+    universalMailto: () => `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head><meta charset="UTF-8"><title>Universal Contact</title></head>
+  <body>
+    <h1>Contact Us</h1>
+    <p>Reach us anytime.</p>
+    <a href="mailto:hello@example.com">Email us</a>
+  </body>
+  </html>
+    `
   };
 
 function parseCookies(req) {
@@ -530,6 +584,27 @@ function startFixtureServer(port = 0) {
       } else if (pathname === '/checkout/confirmation') {
         res.writeHead(200);
         res.end(HTML_TEMPLATES.checkoutSuccess());
+      } else if (pathname === '/docs') {
+        res.writeHead(200);
+        res.end('<html><body><h1>Docs</h1></body></html>');
+      } else if (pathname === '/pricing') {
+        res.writeHead(200);
+        res.end('<html><body><h1>Pricing</h1></body></html>');
+      } else if (pathname === '/terms') {
+        res.writeHead(200);
+        res.end('<html><body><h1>Terms</h1></body></html>');
+      } else if (pathname === '/demo') {
+        res.writeHead(200);
+        res.end('<html><body><h1>Demo</h1></body></html>');
+      } else if (pathname === '/universal/smoke') {
+        res.writeHead(200);
+        res.end(HTML_TEMPLATES.universalSmoke());
+      } else if (pathname === '/universal/cta') {
+        res.writeHead(200);
+        res.end(HTML_TEMPLATES.universalCta());
+      } else if (pathname === '/universal/mailto') {
+        res.writeHead(200);
+        res.end(HTML_TEMPLATES.universalMailto());
       } else {
         res.writeHead(404);
         res.end('Not Found');

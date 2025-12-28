@@ -45,7 +45,7 @@ const SNAPSHOT_SCHEMA_VERSION = 'v1';
  * @property {string} attemptId - unique attempt identifier
  * @property {string} attemptName - human-readable name
  * @property {string} goal - what the user tried to achieve
- * @property {string} outcome - 'SUCCESS', 'FAILURE', or 'FRICTION'
+ * @property {string} outcome - 'SUCCESS', 'FAILURE', 'FRICTION', 'NOT_APPLICABLE', 'DISCOVERY_FAILED', 'SKIPPED'
  * @property {number} totalDurationMs - elapsed time
  * @property {number} stepCount - how many steps executed
  * @property {number} failedStepIndex - index of first failed step, or -1 if all succeeded
@@ -53,6 +53,10 @@ const SNAPSHOT_SCHEMA_VERSION = 'v1';
  * @property {ValidatorResult[]} [validators] - soft failure detectors (Phase 2)
  * @property {number} [softFailureCount] - count of failed validators
  * @property {string} [riskCategory] - 'LEAD', 'REVENUE', 'TRUST/UX' (Phase 2)
+ * @property {string} [skipReason] - reason if SKIPPED, NOT_APPLICABLE, or DISCOVERY_FAILED
+ * @property {string[]} [selectorChainTried] - selectors attempted during discovery
+ * @property {Object} [discoverySignals] - element discovery signals and heuristics
+ * @property {string} [finalSelection] - which selector/strategy successfully matched element
  */
 
 /**
@@ -133,6 +137,13 @@ const SNAPSHOT_SCHEMA_VERSION = 'v1';
  * @typedef {Object} MarketRealitySnapshot
  * @property {string} schemaVersion - always 'v1'
  * @property {SnapshotMeta} meta
+ * @property {Object} [verdict] - unified run-level verdict
+ * @property {('READY'|'DO_NOT_LAUNCH'|'FRICTION')} verdict.verdict
+ * @property {{ level: ('low'|'medium'|'high'), score: number, reasons: string[] }} verdict.confidence
+ * @property {string} verdict.why
+ * @property {string[]} verdict.keyFindings
+ * @property {{ screenshots?: string[], traces?: string[], reportPaths?: string[], affectedPages?: string[] }} verdict.evidence
+ * @property {string[]} verdict.limits
  * @property {CrawlResult} [crawl]
  * @property {AttemptResult[]} attempts
  * @property {Array} flows
@@ -166,6 +177,7 @@ function createEmptySnapshot(baseUrl, runId, toolVersion) {
     attempts: [],
     flows: [],
     signals: [],
+    verdict: null,
     riskSummary: {
       totalSoftFailures: 0,
       totalFriction: 0,
@@ -251,6 +263,18 @@ function validateSnapshot(snapshot) {
 
   if (!snapshot.baseline) {
     errors.push('Missing baseline section');
+  }
+
+  // Basic verdict validation (if present)
+  if (snapshot.verdict) {
+    const v = snapshot.verdict;
+    const allowed = ['READY', 'DO_NOT_LAUNCH', 'FRICTION'];
+    if (!v.verdict || !allowed.includes(v.verdict)) {
+      errors.push('Invalid verdict.verdict');
+    }
+    if (!v.confidence || typeof v.confidence.score !== 'number' || v.confidence.score < 0 || v.confidence.score > 1) {
+      errors.push('Invalid verdict.confidence.score');
+    }
   }
 
   return {

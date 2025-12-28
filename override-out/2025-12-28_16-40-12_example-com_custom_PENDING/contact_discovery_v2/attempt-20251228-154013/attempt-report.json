@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "runId": "20251228-154013",
+  "timestamp": "2025-12-28T15:40:13.894Z",
+  "attemptId": "contact_discovery_v2",
+  "baseUrl": "https://example.com",
+  "outcome": "NOT_APPLICABLE",
+  "meta": {
+    "goal": "Complete user attempt",
+    "startedAt": "2025-12-28T15:40:13.861Z",
+    "endedAt": "2025-12-28T15:40:13.881Z",
+    "durationMs": 20
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "https://example.com",
+      "status": "success",
+      "startedAt": "2025-12-28T15:40:13.861Z",
+      "endedAt": "2025-12-28T15:40:13.876Z",
+      "retries": 0,
+      "screenshots": []
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": null,
+  "successReason": null,
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

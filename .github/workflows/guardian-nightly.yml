@@ -1,7 +1,13 @@
 name: Guardian Nightly Patrol
 
 on:
+  schedule:
+    - cron: "0 3 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
 
 env:
   GUARDIAN_BASE_URL: ${{ secrets.GUARDIAN_PROD_BASE_URL }}
@@ -10,7 +16,6 @@ env:
 jobs:
   nightly:
     runs-on: ubuntu-latest
-    if: ${{ secrets.GUARDIAN_PROD_BASE_URL != '' }}
     defaults:
       run:
         shell: bash
@@ -30,6 +35,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Ensure production URL configured
+        run: |
+          set -euo pipefail
+          if [ -z "${GUARDIAN_BASE_URL}" ]; then
+            echo "GUARDIAN_PROD_BASE_URL secret is required for nightly" >&2
+            exit 1
+          fi
+
       - name: Restore baselines cache
         id: cache-baselines
         uses: actions/cache@v4
@@ -39,17 +52,11 @@ jobs:
           restore-keys: |
             guardian-baselines-${{ runner.os }}-prod-
 
-      - name: Ensure base URL is provided
-        run: |
-          if [ -z "$GUARDIAN_BASE_URL" ]; then
-            echo "GUARDIAN_PROD_BASE_URL secret is required" >&2
-            exit 1
-          fi
-
       - name: Nightly Guardian patrol with retry
         id: guardian-run
         continue-on-error: true
         run: |
+          set -euo pipefail
           mkdir -p "$ARTIFACTS_DIR"
           FLAKE_FILE="$ARTIFACTS_DIR/flake-info.txt"
           attempt=1

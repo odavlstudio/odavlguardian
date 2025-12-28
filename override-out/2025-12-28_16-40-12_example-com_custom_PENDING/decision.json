@@ -1,0 +1,324 @@
+{
+  "runId": "2025-12-28_16-40-12_example-com_custom_PENDING",
+  "url": "https://example.com",
+  "timestamp": "2025-12-28T15:41:03.242Z",
+  "preset": "landing",
+  "policyName": "custom",
+  "finalVerdict": "PARTIAL",
+  "exitCode": 1,
+  "reasons": [
+    {
+      "code": "FLOW_FAILURE",
+      "message": "Flow executions failed: signup_flow, login_flow, checkout_flow."
+    },
+    {
+      "code": "MARKET_IMPACT",
+      "message": "Market impact severity observed: WARNING."
+    },
+    {
+      "code": "OBSERVED",
+      "message": "Observed 1 attempted flow(s); successful=1, failed=0, friction=0."
+    },
+    {
+      "code": "PARTIAL_SCOPE",
+      "message": "Some flows observed (site_smoke), but at least one flow failed or could not be confirmed."
+    },
+    {
+      "code": "POLICY",
+      "message": "⚠️  Policy evaluation WARNING (exit code 2)"
+    }
+  ],
+  "resolved": {
+    "presetId": "landing",
+    "policySource": "preset:landing",
+    "policyId": "custom",
+    "policyHash": "964c3931b570d1d147d6f27cb1b75e785aba740e2fb3b01b859d4d809d11527a",
+    "mediaRequirements": {
+      "requireScreenshots": true,
+      "requireTraces": false,
+      "minCompleteness": 0.6,
+      "minIntegrity": 0.7
+    },
+    "attemptPlan": {
+      "enabled": [
+        "site_smoke",
+        "primary_ctas",
+        "contact_discovery_v2",
+        "contact_form",
+        "language_switch",
+        "newsletter_signup"
+      ],
+      "disabled": [
+        "signup",
+        "login",
+        "checkout"
+      ],
+      "userFiltered": [],
+      "missing": []
+    },
+    "coverage": {
+      "total": 6,
+      "executed": 1,
+      "executedCount": 1,
+      "enabledPlannedCount": 6,
+      "disabledPlannedCount": 0,
+      "skippedNotApplicable": 0,
+      "skippedMissing": 0,
+      "skippedUserFiltered": 3,
+      "skippedDisabledByPreset": 0,
+      "disabled": 0
+    },
+    "evidenceMetrics": {
+      "completeness": 0.16666666666666666,
+      "integrity": 1,
+      "hashedFiles": 40,
+      "totalFiles": 40,
+      "screenshotsEnabled": true,
+      "tracesEnabled": true
+    }
+  },
+  "attestation": {
+    "hash": "b2a5fbc959f2765b498946a613e49cb8a33e083c5b3b7222a74ae99ffd8d8ed5",
+    "policyHash": "964c3931b570d1d147d6f27cb1b75e785aba740e2fb3b01b859d4d809d11527a",
+    "snapshotHash": "afa89d1a2b90b1fa7393a988c45f8f369a9368993ce9d61ddc8257f98808e3e8",
+    "manifestHash": "35e4b62d5a4ae91bc3bb81c3b9bc873a9a6cf40b948a0b6b5816a44346cedd8b",
+    "runId": "2025-12-28_16-40-12_example-com_custom_PENDING"
+  },
+  "counts": {
+    "attemptsExecuted": 1,
+    "successful": 1,
+    "failed": 0,
+    "skipped": 5,
+    "nearSuccess": 0
+  },
+  "inputs": {
+    "policy": {
+      "passed": false,
+      "exitCode": 2,
+      "reasons": [
+        "Coverage gaps detected: 5 of 6 attempts not executed"
+      ],
+      "summary": "⚠️  Policy evaluation WARNING (exit code 2)",
+      "counts": {
+        "critical": 0,
+        "warning": 3,
+        "info": 0,
+        "softFailures": 0,
+        "totalRisk": 3
+      }
+    },
+    "baseline": {
+      "baselineCreated": false,
+      "baselineSnapshot": {
+        "schemaVersion": "v1",
+        "createdAt": "2025-12-28T02:21:31.229Z",
+        "url": "https://example.com",
+        "toolVersion": "0.2.0-phase2",
+        "perAttempt": {
+          "contact_form": {
+            "attemptId": "contact_form",
+            "attemptName": "Contact Form Submission",
+            "outcome": "SKIPPED",
+            "totalDurationMs": 0,
+            "stepCount": 0,
+            "friction": null
+          },
+          "language_switch": {
+            "attemptId": "language_switch",
+            "attemptName": "Language Toggle",
+            "outcome": "SKIPPED",
+            "totalDurationMs": 0,
+            "stepCount": 0,
+            "friction": null
+          },
+          "newsletter_signup": {
+            "attemptId": "newsletter_signup",
+            "attemptName": "Newsletter Signup",
+            "outcome": "SKIPPED",
+            "totalDurationMs": 0,
+            "stepCount": 0,
+            "friction": null
+          },
+          "signup": {
+            "attemptId": "signup",
+            "attemptName": "Account Signup",
+            "outcome": "SKIPPED",
+            "totalDurationMs": 0,
+            "stepCount": 0,
+            "friction": null
+          },
+          "login": {
+            "attemptId": "login",
+            "attemptName": "Account Login",
+            "outcome": "SKIPPED",
+            "totalDurationMs": 0,
+            "stepCount": 0,
+            "friction": null
+          },
+          "checkout": {
+            "attemptId": "checkout",
+            "attemptName": "Checkout Review",
+            "outcome": "SKIPPED",
+            "totalDurationMs": 0,
+            "stepCount": 0,
+            "friction": null
+          }
+        },
+        "perFlow": {
+          "signup_flow": {
+            "flowId": "signup_flow",
+            "flowName": "Intent: Account Signup",
+            "outcome": "FAILURE",
+            "stepsExecuted": 1,
+            "stepsTotal": 6,
+            "durationMs": 40459,
+            "error": "page.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[data-guardian=\"account-signup-link\"], a:has-text(\"Account Signup\")')\u001b[22m\n"
+          },
+          "login_flow": {
+            "flowId": "login_flow",
+            "flowName": "Intent: Account Login",
+            "outcome": "FAILURE",
+            "stepsExecuted": 1,
+            "stepsTotal": 6,
+            "durationMs": 40309,
+            "error": "page.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[data-guardian=\"account-login-link\"], a:has-text(\"Login\"), a[href*=\"login\"]')\u001b[22m\n"
+          },
+          "checkout_flow": {
+            "flowId": "checkout_flow",
+            "flowName": "Intent: Checkout",
+            "outcome": "FAILURE",
+            "stepsExecuted": 1,
+            "stepsTotal": 4,
+            "durationMs": 40281,
+            "error": "page.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a[data-guardian=\"checkout-link\"], a:has-text(\"Checkout\"), a[href*=\"checkout\"]')\u001b[22m\n"
+          }
+        },
+        "crawl": {
+          "discoveredUrls": [
+            "https://example.com/"
+          ],
+          "visitedCount": 1,
+          "failedCount": 0,
+          "safetyBlockedCount": 0,
+          "httpFailures": [],
+          "notes": "Discovered 1 URLs, visited 1"
+        },
+        "signals": [
+          {
+            "id": "flow_signup_flow_failed",
+            "severity": "high",
+            "type": "failure",
+            "description": "Flow Intent: Account Signup failed",
+            "affectedAttemptId": "signup_flow"
+          },
+          {
+            "id": "flow_login_flow_failed",
+            "severity": "high",
+            "type": "failure",
+            "description": "Flow Intent: Account Login failed",
+            "affectedAttemptId": "login_flow"
+          },
+          {
+            "id": "flow_checkout_flow_failed",
+            "severity": "high",
+            "type": "failure",
+            "description": "Flow Intent: Checkout failed",
+            "affectedAttemptId": "checkout_flow"
+          }
+        ]
+      },
+      "diffResult": {
+        "regressions": {},
+        "improvements": {},
+        "attemptsDriftCount": 0
+      }
+    },
+    "market": {
+      "highestSeverity": "WARNING",
+      "topRisks": [
+        {
+          "attemptId": "signup_flow",
+          "validatorId": "outcome_signup_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "signup_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "login_flow",
+          "validatorId": "outcome_login_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "login_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "checkout_flow",
+          "validatorId": "outcome_checkout_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "checkout_flow attempt FAILED - user could not complete goal"
+        }
+      ],
+      "countsBySeverity": {
+        "CRITICAL": 0,
+        "WARNING": 3,
+        "INFO": 0
+      },
+      "totalRiskCount": 3,
+      "allRisks": [
+        {
+          "attemptId": "signup_flow",
+          "validatorId": "outcome_signup_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "signup_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "login_flow",
+          "validatorId": "outcome_login_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "login_flow attempt FAILED - user could not complete goal"
+        },
+        {
+          "attemptId": "checkout_flow",
+          "validatorId": "outcome_checkout_flow",
+          "validatorType": "outcome",
+          "category": "UX",
+          "severity": "WARNING",
+          "impactScore": 45,
+          "humanReadableReason": "checkout_flow attempt FAILED - user could not complete goal"
+        }
+      ]
+    },
+    "flows": {
+      "total": 3,
+      "failures": 3,
+      "frictions": 0
+    }
+  },
+  "auditSummary": {
+    "tested": [
+      "site_smoke"
+    ],
+    "notTested": {
+      "disabledByPreset": [],
+      "userFiltered": [
+        "contact_form",
+        "language_switch",
+        "newsletter_signup"
+      ],
+      "notApplicable": [],
+      "missing": []
+    }
+  }
+}

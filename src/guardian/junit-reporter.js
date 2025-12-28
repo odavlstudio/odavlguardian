@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { formatVerdictStatus, formatConfidence, formatVerdictWhy } = require('./text-formatters');
 
 /**
  * Escape XML special characters
@@ -173,6 +174,16 @@ function generateJunitXml(snapshot, baseUrl = '') {
   xml += `      <property name="runId" value="${escapeXml(runId)}" />\n`;
   xml += `      <property name="url" value="${escapeXml(url)}" />\n`;
   xml += `      <property name="createdAt" value="${escapeXml(createdAt)}" />\n`;
+  // Verdict properties
+  const v = snapshot.verdict || snapshot.meta?.verdict || null;
+  if (v) {
+    const cf = v.confidence || {};
+    const whyShort = (v.why || '').slice(0, 200);
+    xml += `      <property name="verdict" value="${escapeXml(v.verdict)}" />\n`;
+    if (typeof cf.score === 'number') xml += `      <property name="confidenceScore" value="${escapeXml(String(cf.score))}" />\n`;
+    if (cf.level) xml += `      <property name="confidenceLevel" value="${escapeXml(cf.level)}" />\n`;
+    if (whyShort) xml += `      <property name="verdictWhy" value="${escapeXml(whyShort)}" />\n`;
+  }
   xml += `    </properties>\n`;
 
   // Testcases
@@ -184,11 +195,17 @@ function generateJunitXml(snapshot, baseUrl = '') {
   xml += `URL: ${escapeXml(url)}\n`;
   xml += `Run ID: ${escapeXml(runId)}\n`;
   xml += `Created: ${escapeXml(createdAt)}\n\n`;
+  if (v) {
+    xml += `Verdict: ${escapeXml(formatVerdictStatus(v))}\n`;
+    xml += `Confidence: ${escapeXml(formatConfidence(v))}\n`;
+    const why = formatVerdictWhy(v);
+    if (why) xml += `Why: ${escapeXml(why)}\n\n`;
+  }
 
   xml += `Summary:\n`;
   xml += `  Total Tests: ${totalTests}\n`;
   xml += `  Failures: ${totalFailures}\n`;
-  xml += `  Skipped: ${totalSkipped}\n`;
+  xml += `  Not Executed (JUnit skipped): ${totalSkipped}\n`;
 
   if (marketImpact.countsBySeverity) {
     xml += `\nMarket Impact:\n`;

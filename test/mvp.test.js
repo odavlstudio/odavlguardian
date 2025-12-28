@@ -68,10 +68,10 @@ function startServer() {
     console.log(result.stdout);
     if (result.stderr) console.error('STDERR:', result.stderr);
 
-    // Check exit code
+    // Check exit code (deterministic mapping: OBSERVED=0, PARTIAL=1, INSUFFICIENT_DATA=2)
     assert.ok(
-      result.status === 0 || result.status === 1,
-      `Exit code should be 0 or 1, got ${result.status}`
+      result.status === 0 || result.status === 1 || result.status === 2,
+      `Exit code should be 0, 1, or 2, got ${result.status}`
     );
     console.log(`✅ Exit code: ${result.status}`);
 
@@ -106,38 +106,20 @@ function startServer() {
     console.log(`   - Decision: ${report.finalJudgment.decision}`);
     console.log(`   - Confidence: ${report.confidence.level}`);
 
-    // Test 2: Decision logic
+    // Test 2: Decision logic — new vocabulary
     console.log('\n📋 Test 2: Decision logic');
-    
-    if (report.summary.coverage >= 60) {
-      assert.strictEqual(
-        report.finalJudgment.decision,
-        'READY',
-        'High coverage should result in READY'
-      );
-      console.log('✅ High coverage → READY');
-    } else if (report.summary.coverage < 30) {
-      assert.strictEqual(
-        report.finalJudgment.decision,
-        'DO_NOT_LAUNCH',
-        'Low coverage should result in DO_NOT_LAUNCH'
-      );
-      console.log('✅ Low coverage → DO_NOT_LAUNCH');
-    } else {
-      assert.strictEqual(
-        report.finalJudgment.decision,
-        'INSUFFICIENT_CONFIDENCE',
-        'Medium-low coverage should result in INSUFFICIENT_CONFIDENCE'
-      );
-      console.log('✅ Medium coverage → INSUFFICIENT_CONFIDENCE');
-    }
+    const allowedDecisions = ['OBSERVED', 'PARTIAL', 'INSUFFICIENT_DATA'];
+    assert.ok(allowedDecisions.includes(report.finalJudgment.decision), `Unexpected decision: ${report.finalJudgment.decision}`);
+    console.log('✅ Decision uses allowed vocabulary');
 
-    // Test 3: Confidence levels
+    // For basic crawl-only run (no flows), expect INSUFFICIENT_DATA
+    assert.strictEqual(report.finalJudgment.decision, 'INSUFFICIENT_DATA', 'Crawl-only run should yield INSUFFICIENT_DATA');
+    console.log('✅ Crawl-only → INSUFFICIENT_DATA');
+
+    // Test 3: Confidence levels — should remain LOW for crawl-only
     console.log('\n📋 Test 3: Confidence level calculation');
     
     let expectedLevel = 'LOW';
-    if (report.summary.coverage >= 85) expectedLevel = 'HIGH';
-    else if (report.summary.coverage >= 60) expectedLevel = 'MEDIUM';
     
     assert.strictEqual(
       report.confidence.level,

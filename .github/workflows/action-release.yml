@@ -1,0 +1,38 @@
+name: Action Release Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name to create or update"
+        required: false
+        default: "v1"
+      ref:
+        description: "Commit or ref to tag"
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify action manifest exists
+        run: |
+          test -f action.yml || { echo "action.yml missing; cannot publish action" >&2; exit 1; }
+
+      - name: Create or move tag
+        env:
+          TAG_NAME: ${{ inputs.tag || 'v1' }}
+          TAG_REF: ${{ inputs.ref || github.sha }}
+        run: |
+          git tag -f "$TAG_NAME" "$TAG_REF"
+          git push origin "refs/tags/$TAG_NAME" --force
+          echo "Tagged $TAG_REF as $TAG_NAME"

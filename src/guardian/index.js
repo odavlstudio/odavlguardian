@@ -176,35 +176,38 @@ async function runGuardian(config) {
       }
     }
 
-    // Display verdict
+    // Display verdict with evidence-first messaging
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    
-    const { decision } = report.finalJudgment;
+
+    const { decision, reasons } = report.finalJudgment;
     const coverageStr = `${report.summary.coverage}%`;
-    
-    if (decision === 'READY') {
-      console.log(`\n🟢 READY — Safe to launch`);
-    } else if (decision === 'DO_NOT_LAUNCH') {
-      console.log(`\n🔴 DO_NOT_LAUNCH — Issues found`);
-    } else {
-      console.log(`\n🟡 INSUFFICIENT_CONFIDENCE — Needs more data`);
-    }
-    
-    console.log(`\n📈 Coverage: ${coverageStr}`);
+
+    // Map internal to canonical verdict labels for CLI output
+    const { toCanonicalVerdict } = require('./verdicts');
+    const canonical = toCanonicalVerdict(decision);
+    const verdictLabel = canonical === 'READY'
+      ? 'READY — flows seen end-to-end'
+      : canonical === 'FRICTION'
+        ? 'FRICTION — some flows failed or could not be confirmed'
+        : 'DO_NOT_LAUNCH — only limited observations or critical failures'
+
+    console.log(`\n🔎 Verdict: ${verdictLabel}`);
+    console.log(`\n📈 Coverage (link discovery only): ${coverageStr}`);
     console.log(`📄 Pages visited: ${report.summary.visitedPages}`);
-    console.log(`❌ Failed pages: ${report.summary.failedPages}`);
+    console.log(`❌ Failed pages (server/nav errors): ${report.summary.failedPages}`);
     console.log(`💬 Confidence: ${report.confidence.level}`);
-    
-    console.log(`\n📋 Reasons:`);
-    report.finalJudgment.reasons.forEach(reason => {
+
+    console.log(`\nEvidence and limitations:`);
+    reasons.forEach(reason => {
       console.log(`   • ${reason}`);
     });
 
     console.log(`\n💾 Full report: ${savedReport.reportPath}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
-    // Exit with appropriate code
-    const exitCode = (decision === 'READY') ? 0 : 1;
+    // Exit with deterministic codes: OBSERVED=0, PARTIAL=1, INSUFFICIENT_DATA=2
+    const { mapExitCodeFromCanonical } = require('./verdicts');
+    const exitCode = mapExitCodeFromCanonical(canonical);
     process.exit(exitCode);
 
   } catch (err) {

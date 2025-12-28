@@ -1,174 +1,199 @@
 # 🛡️ ODAVL Guardian
 
-[![Tier-1 Proof (Level 2)](https://github.com/odavlstudio/odavlguardian/actions/workflows/tier1-proof.yml/badge.svg)](https://github.com/odavlstudio/odavlguardian/actions/workflows/tier1-proof.yml)
+The Reality Guard for Websites
 
-The Human Reality Check Before You Launch
+ODAVL Guardian does not test code.
+It tests reality — before your users do.
 
-Guardian does not test code.
-Guardian tests reality — like a real human would.
+What is ODAVL Guardian?
 
-Most products don't fail because of bad code.
-They fail because something breaks in the real user journey — after it's already too late.
+ODAVL Guardian is a reality-based website guard.
 
-ODAVL Guardian is a virtual human
-that visits your website, tries to use it,
-and tells you what will actually happen to your users.
+It behaves like a real human visitor, navigates your website end-to-end, and verifies that the actual user experience works as intended — not just that the code exists.
 
-Before they discover it themselves.
+Guardian clicks, types, submits, waits, retries, fails, hesitates, and reacts
+exactly like a real user would.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 Quick Start (Level 1 — Golden Path)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+If something breaks in reality, Guardian finds it first.
 
-```bash
-# Level 1 Reality Check
-guardian --url https://example.com
+Why ODAVL Guardian Exists
 
-# Equivalent
-guardian reality --url https://example.com
-```
+Most websites don’t fail because of:
 
-Outputs (always saved under ./.odavlguardian/<run>/):
-- decision.json — contains `finalVerdict` (READY | FRICTION | DO_NOT_LAUNCH), `exitCode` (0 | 1 | 2), and explanation
-- summary.md — human-readable summary
-- META.json — run metadata with `result` (PASSED | WARN | FAILED | PENDING) and attempt counts
+bad code
 
-Canonical verdicts (everywhere):
-- READY — Safe to proceed
-- FRICTION — Users will struggle
-- DO_NOT_LAUNCH — Users will fail
+missing features
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📄 What You Get (Evidence)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+poor infrastructure
 
-Each run produces:
+They fail because of small reality breaks:
 
-- **summary.md** — human-readable report
-- **decision.json** — structured verdict with key findings
-- **market-report.html** — full evidence and intelligence
-- **screenshots & traces** — visual proof
+a button that does nothing
 
-Everything is local, inspectable, and auditable.
-Artifacts saved to: `.odavlguardian/`
+a form that never submits
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚙️ How Guardian Works (Mental Model)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+a checkout that times out
 
-**Observe**
-Guardian discovers real entry points like a human.
+a language switch that lies
 
-**Attempt**
-It tries actions humans try: navigation, forms, flows.
+a flow that technically works but never reaches the goal
 
-**Verify**
-It checks if the goal was actually achieved.
+These issues are rarely caught by:
 
-**Decide**
-Guardian gives a clear verdict — backed by evidence.
+unit tests
 
-No assumptions.
-No simulated success.
+integration tests
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 When You Should Use Guardian
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+linters
 
-Use Guardian before:
+static analysis
 
-- a production deploy
-- a public launch
-- sending a link to investors
-- running paid ads
-- announcing a feature
+They are usually discovered by real users — after damage is done.
 
-If failure would be embarrassing or expensive —
-Guardian belongs there.
+ODAVL Guardian exists to prevent that.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 Guardian's Philosophy: Silence Discipline
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Core Principle
 
-Guardian speaks only when it matters.
+Reality > Implementation
 
-If everything is fine → it stays quiet
+Guardian does not ask:
+“Is the code correct?”
 
-If users will fail → it is very clear
+Guardian asks:
+“Did the human succeed?”
 
-This is intentional.
+How It Works (Conceptually)
 
-Confidence comes from signal, not noise.
+You define a realistic user scenario
+(landing, signup, checkout, dashboard, etc.)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌍 Who Guardian Is For
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Guardian executes the scenario as a human-like agent
 
-Founders who fear silent failure
+real navigation
 
-Developers who want truth before deploy
+real waits
 
-Teams who don't want users to be testers
+real interactions
 
-If you care about what really happens,
-Guardian is built for you.
+real failure conditions
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Status
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Guardian evaluates the result using reality rules
 
-Public Preview
+goal reached or not
 
-CLI-first
+partial success
 
-GitHub distribution
+friction
 
-Local & privacy-first
+silent failure
 
-Guardian is already useful.
-It will only become sharper.
+Guardian produces a decision, not just logs.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧭 What Comes Next
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📚 Full Documentation
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Result Semantics (Honest by Design)
 
-| Topic | Link | For... |
-|-------|------|--------|
-| **Getting Started** | [docs/guardian/getting-started.md](docs/guardian/getting-started.md) | First-time users |
-| **CLI Reference** | [guardian --help](bin/guardian.js) | All commands and flags |
-| **Presets & Flows** | [docs/guardian/presets.md](docs/guardian/presets.md) | Custom checks and user journeys |
-| **CI/CD Integration** | [docs/guardian/ci-integration.md](docs/guardian/ci-integration.md) | GitHub, GitLab, Bitbucket setup |
-| **Contract (MVP)** | [docs/guardian/guardian-contract-v1.md](docs/guardian/guardian-contract-v1.md) | Specification & guarantees |
-| **Sample Report** | [website/app/report/sample/page.tsx](website/app/report/sample/page.tsx) | Uses in-repo sample artifacts under website/public/sample-artifacts |
+Guardian never pretends success.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔗 CI/CD Templates
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+It classifies reality into clear outcomes:
 
-Ready-to-use templates for continuous integration:
+SAFE — goal reached, no failures
 
-- **GitHub Actions** — [.github/workflows/guardian-pr-gate.yml](.github/workflows/guardian-pr-gate.yml)
-- **GitLab CI** — [.gitlab-ci.yml](.gitlab-ci.yml)
-- **Bitbucket Pipelines** — [bitbucket-pipelines.yml](bitbucket-pipelines.yml)
+RISK — partial progress, friction, or near-success
 
-See [CI/CD Integration Guide](docs/guardian/ci-integration.md) for setup instructions.
+DO_NOT_LAUNCH — user failed or flow broken
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No green checkmarks for broken experiences.
 
-Deeper journey intelligence
+What Guardian Is Not
 
-Better failure classification
+Guardian is not:
 
-Stronger confidence signals
+a unit testing framework
 
-But the core will never change:
+a code quality tool
 
-Guardian exists to test reality — not illusions.
+a performance benchmark
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🛠️ License
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+a security scanner
 
-MIT — use it, inspect it, trust it.
+a synthetic lighthouse replacement
+
+Guardian complements those tools — it does not replace them.
+
+Who Is This For?
+
+ODAVL Guardian is built for:
+
+founders before launch
+
+teams before deployment
+
+SaaS products before scaling
+
+marketing pages before campaigns
+
+checkout flows before ads
+
+international sites before localization
+
+Anyone who cares about what users actually experience.
+
+Example Use Cases
+
+“Can a new user actually sign up?”
+
+“Does checkout really finish?”
+
+“Does language switching change content?”
+
+“Does the CTA lead somewhere meaningful?”
+
+“Does the flow succeed without retries?”
+
+If a human can fail — Guardian will find it.
+
+Philosophy
+
+ODAVL Guardian follows a strict philosophy:
+
+No hallucination
+
+No fake success
+
+No optimistic assumptions
+
+No silent failures
+
+If reality is broken, Guardian says so.
+
+Status
+
+Project maturity:
+Early but real.
+Opinionated.
+Built with honesty over hype.
+
+This is a foundation — not a marketing shell.
+
+Part of ODAVL
+
+ODAVL Guardian is part of the ODAVL ecosystem, focused on:
+
+truth
+
+evidence
+
+safety
+
+reality-driven decisions
+
+More tools may exist — but Guardian protects the human layer.
+
+Final Thought
+
+Tests can pass.
+Metrics can look good.
+Code can be clean.
+
+And users can still fail.
+
+ODAVL Guardian makes sure they don’t.

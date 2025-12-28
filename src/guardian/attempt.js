@@ -132,6 +132,28 @@ async function executeAttempt(config) {
     const htmlPath = reporter.saveHtmlReport(htmlContent, runDir);
     log(`✅ HTML report: ${path.basename(htmlPath)}`);
 
+    // Persist deterministic attempt evidence (attempt.json + steps log)
+    const attemptJsonPath = path.join(runDir, 'attempt.json');
+    const attemptSnapshot = {
+      attemptId,
+      baseUrl,
+      outcome: attemptResult.outcome,
+      startedAt: attemptResult.startedAt,
+      endedAt: attemptResult.endedAt,
+      totalDurationMs: attemptResult.totalDurationMs,
+      friction: attemptResult.friction,
+      validators: attemptResult.validators,
+      softFailures: attemptResult.softFailures,
+      successReason: attemptResult.successReason,
+      error: attemptResult.error,
+      steps: attemptResult.steps
+    };
+    fs.writeFileSync(attemptJsonPath, JSON.stringify(attemptSnapshot, null, 2));
+
+    const stepsLogPath = path.join(runDir, 'steps.jsonl');
+    const stepsLog = (attemptResult.steps || []).map(s => JSON.stringify(s)).join('\n');
+    fs.writeFileSync(stepsLogPath, stepsLog + (stepsLog ? '\n' : ''));
+
     // Display summary
     log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
@@ -204,6 +226,8 @@ async function executeAttempt(config) {
       artifactsDir: runDir,
       reportJsonPath: path.join(runDir, 'attempt-report.json'),
       reportHtmlPath: path.join(runDir, 'attempt-report.html'),
+      attemptJsonPath,
+      stepsLogPath,
       tracePath: enableTrace ? path.join(runDir, 'trace.zip') : null,
       steps: attemptResult.steps,
       friction: attemptResult.friction,

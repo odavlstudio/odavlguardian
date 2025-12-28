@@ -3,6 +3,9 @@ name: ODAVL Guardian Regression Gate
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   guardian-regression:
     runs-on: ubuntu-latest

@@ -354,8 +354,9 @@ async function checkBaseline(options) {
 
   // If baseline is not available, skip comparison and return early
   if (!baseline || baselineStatus !== 'LOADED') {
+    const currentExitCode = typeof current.exitCode === 'number' ? current.exitCode : 0;
     return {
-      exitCode: 0,  // Exit code based on flows only, not baseline
+      exitCode: currentExitCode,
       runDir: current.runDir,
       overallRegressionVerdict: baselineStatus === 'NO_BASELINE' ? 'NO_BASELINE' : 'BASELINE_UNUSABLE',
       comparisons: [],
@@ -479,10 +480,17 @@ async function checkBaseline(options) {
     }
   }
 
-  // CRITICAL: Exit code is ALWAYS 0 from baseline check
-  // Exit codes come from flow outcomes only (Phase 2.x policy)
+  // Exit code reflects regression severity while preserving underlying run exit codes
+  const currentExitCode = typeof current.exitCode === 'number' ? current.exitCode : 0;
+  let exitCode = currentExitCode;
+  if (overallRegressionVerdict === 'REGRESSION_FAILURE') {
+    exitCode = Math.max(exitCode, 4);
+  } else if (overallRegressionVerdict === 'REGRESSION_FRICTION') {
+    exitCode = Math.max(exitCode, 3);
+  }
+
   return {
-    exitCode: 0,
+    exitCode,
     runDir: current.runDir,
     reportJsonPath: jsonPath,
     reportHtmlPath: htmlPath,

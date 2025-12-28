@@ -5,7 +5,9 @@
 
 const VALID_SUBCOMMANDS = [
   'init', 'protect', 'reality', 'attempt', 'baseline',
-  'presets', 'evaluate', 'version', 'flow', 'scan', 'smoke', 'check'
+  'presets', 'template', 'list', 'cleanup', 'evaluate', 'version', 'flow', 'scan', 'smoke', 'check',
+  'journey-scan', 'journey', 'live', 'plan', 'upgrade', 'ci', 'feedback',
+  'sites', 'users', 'audit', 'export', 'recipe'
 ];
 
 const VALID_GLOBAL_FLAGS = [
@@ -14,14 +16,25 @@ const VALID_GLOBAL_FLAGS = [
 
 const VALID_SUBCOMMAND_FLAGS = {
   'scan': ['--url', '--preset', '--artifacts', '--policy', '--headful', '--no-trace', '--no-screenshots', '--watch', '-w', '--fast', '--fail-fast', '--timeout-profile', '--attempts', '--parallel', '--help', '-h'],
+  'journey-scan': ['--url', '--preset', '--out', '--artifacts', '--timeout', '--headful', '--help', '-h'],
+  'journey': ['--url', '--preset', '--out', '--artifacts', '--timeout', '--headful', '--help', '-h'],
+  'live': ['--url', '--preset', '--out', '--artifacts', '--timeout', '--interval', '--cooldown', '--headful', '--help', '-h'],
   'protect': ['--url', '--policy', '--webhook', '--watch', '-w', '--fast', '--fail-fast', '--timeout-profile', '--attempts', '--parallel', '--help', '-h'],
-  'reality': ['--url', '--attempts', '--artifacts', '--policy', '--discover', '--universal', '--webhook', '--headful', '--watch', '-w', '--no-trace', '--no-screenshots', '--fast', '--fail-fast', '--timeout-profile', '--parallel', '--help', '-h'],
+  'reality': ['--url', '--attempts', '--artifacts', '--policy', '--preset', '--discover', '--universal', '--webhook', '--headful', '--watch', '-w', '--no-trace', '--no-screenshots', '--fast', '--fail-fast', '--timeout-profile', '--parallel', '--help', '-h', '--max-pages', '--max-depth', '--timeout'],
   'attempt': ['--url', '--attempt', '--artifacts', '--headful', '--no-trace', '--no-screenshots', '--help', '-h'],
   'smoke': ['--url', '--headful', '--budget-ms', '--help', '-h'],
   'check': ['--url', '--headful', '--budget-ms', '--help', '-h'],
   'baseline': [],
   'init': ['--preset', '--help', '-h'],
-  'presets': ['--help', '-h']
+  'list': ['--artifacts', '--failed', '--site', '--limit', '--help', '-h'],
+  'cleanup': ['--artifacts', '--older-than', '--keep-latest', '--failed-only', '--help', '-h'],
+  'presets': ['--help', '-h'],
+  'template': ['--output', '--help', '-h'],
+  'sites': ['--project', '--help', '-h'],
+  'users': ['--help', '-h'],
+  'audit': ['--limit', '--action', '--user', '--help', '-h'],
+  'export': ['--format', '--output', '--help', '-h'],
+  'recipe': ['--url', '--file', '--out', '--force', '--help', '-h']
 };
 
 function validateFlags(argv) {

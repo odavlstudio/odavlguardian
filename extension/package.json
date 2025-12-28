@@ -35,6 +35,27 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "ODAVL Guardian",
+      "properties": {
+        "odavlGuardian.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Guardian CLI binary or JS entry (optional). If set, the extension will use this path."
+        },
+        "odavlGuardian.preferWorkspaceBinary": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prefer running the workspace's local bin/guardian.js via Node when available."
+        },
+        "odavlGuardian.packageManager": {
+          "type": "string",
+          "enum": ["npm", "pnpm", "yarn"],
+          "default": "npm",
+          "description": "Package manager used for invoking npm scripts when falling back (e.g., 'npm run guardian')."
+        }
+      }
+    },
     "commands": [
       {
         "command": "odavlGuardian.runRealityCheck",

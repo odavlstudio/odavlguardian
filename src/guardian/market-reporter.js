@@ -46,17 +46,21 @@ class MarketReporter {
 
   generateHtmlReport(report) {
     const { summary, results, runId, baseUrl, attemptsRun, timestamp, manualResults = [], autoResults = [], flows = [], flowSummary = { total: 0, success: 0, failure: 0 }, intelligence = {} } = report;
-    const verdictColor = summary.overallVerdict === 'SUCCESS' ? '#10b981'
-      : summary.overallVerdict === 'FRICTION' ? '#f59e0b'
+    const { toCanonicalVerdict } = require('./verdicts');
+    const overallCanonical = toCanonicalVerdict(summary.overallVerdict);
+    const verdictColor = overallCanonical === 'READY' ? '#10b981'
+      : overallCanonical === 'FRICTION' ? '#f59e0b'
       : '#ef4444';
-    const verdictEmoji = summary.overallVerdict === 'SUCCESS' ? '🟢' : summary.overallVerdict === 'FRICTION' ? '🟡' : '🔴';
+    const verdictEmoji = overallCanonical === 'READY' ? '🟢' : overallCanonical === 'FRICTION' ? '🟡' : '🔴';
 
     // Phase 5: Generate Executive Summary
     const executiveSummary = this._generateExecutiveSummary(intelligence, results, flows);
 
     const attemptsRows = results.map((result, idx) => {
-      const color = result.outcome === 'SUCCESS' ? '#10b981' : result.outcome === 'FRICTION' ? '#f59e0b' : '#ef4444';
-      const badge = result.outcome === 'SUCCESS' ? '✅ SUCCESS' : result.outcome === 'FRICTION' ? '⚠️ FRICTION' : '❌ FAILURE';
+      const { toCanonicalVerdict } = require('./verdicts');
+      const canon = toCanonicalVerdict(result.outcome);
+      const color = canon === 'READY' ? '#10b981' : canon === 'FRICTION' ? '#f59e0b' : '#ef4444';
+      const badge = canon === 'READY' ? '✅ READY' : canon === 'FRICTION' ? '⚠️ FRICTION' : '❌ DO_NOT_LAUNCH';
       const frictionSignals = result.friction && result.friction.signals ? result.friction.signals : [];
       const sourceLabel = result.source === 'auto-generated' ? ' 🤖' : '';
       return `
@@ -122,8 +126,10 @@ class MarketReporter {
     }).join('');
 
     const flowRows = flows.map((flow, idx) => {
-      const color = flow.outcome === 'SUCCESS' ? '#10b981' : '#ef4444';
-      const badge = flow.outcome === 'SUCCESS' ? '✅ SUCCESS' : '❌ FAILURE';
+      const { toCanonicalVerdict } = require('./verdicts');
+      const canon = toCanonicalVerdict(flow.outcome);
+      const color = canon === 'READY' ? '#10b981' : canon === 'FRICTION' ? '#f59e0b' : '#ef4444';
+      const badge = canon === 'READY' ? '✅ READY' : canon === 'FRICTION' ? '⚠️ FRICTION' : '❌ DO_NOT_LAUNCH';
       const evalSummary = flow.successEval ? (() => {
         const reasons = (flow.successEval.reasons || []).slice(0, 3).map(r => `• ${r}`).join('<br/>');
         const ev = flow.successEval.evidence || {};
@@ -229,7 +235,7 @@ class MarketReporter {
   <div class="container">
     <div class="header">
       <h1>Market Reality Report</h1>
-      <div class="verdict">${verdictEmoji} ${summary.overallVerdict}</div>
+      <div class="verdict">${verdictEmoji} ${overallCanonical}</div>
       <div class="meta">
         <div><strong>Run ID:</strong> ${runId}</div>
         <div><strong>Base URL:</strong> ${baseUrl}</div>
@@ -559,12 +565,14 @@ class MarketReporter {
     } else if (frictionCount > 0) {
       overallVerdict = 'FRICTION';
     }
+    const { toCanonicalVerdict } = require('./verdicts');
+    const overallCanonical = toCanonicalVerdict(overallVerdict);
 
     return {
       successCount,
       frictionCount,
       failureCount,
-      overallVerdict
+      overallVerdict: overallCanonical
     };
   }
 }

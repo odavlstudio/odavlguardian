@@ -13,11 +13,16 @@ coverage/
 # Guardian artifacts
 artifacts/
 test-artifacts/
+test-output/
 .odavl-guardian/
 tmp-artifacts/
 tmp-*
+tmp-live/
+tmp-live2/
+tmp-out/
 test-manual*/
 verify-run-*/
 website/.next/
 playwright-report/
 trace.zip
+real-test-output.log

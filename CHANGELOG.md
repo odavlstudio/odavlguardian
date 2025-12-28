@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased — Tier-1 Institutional Trust
+## [1.0.0] — 2025-12-28 — Tier-1 Institutional Trust
 
 ### Added (Tier-1 Trust & Governance)
 
@@ -77,6 +77,12 @@
 📈 Coverage: 100%
 💬 Confidence: HIGH
 [ALL OTHER SECTIONS SUPPRESSED — SILENT]
+
+## Unreleased
+
+### Added
+
+- (Placeholder for future improvements)
 
 ## 0.2.0 — Performance Edition (2025-12-24)
 
