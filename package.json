@@ -6,7 +6,7 @@
   "author": "ODAVL",
   "repository": {
     "type": "git",
-    "url": "https://github.com/odavlstudio/odavlguardian"
+    "url": "git+https://github.com/odavlstudio/odavlguardian.git"
   },
   "keywords": [
     "testing",
