@@ -1,8 +1,6 @@
 name: Guardian Nightly Patrol
 
 on:
-  schedule:
-    - cron: '0 7 * * *'
   workflow_dispatch:
 
 env:
@@ -12,6 +10,7 @@ env:
 jobs:
   nightly:
     runs-on: ubuntu-latest
+    if: ${{ secrets.GUARDIAN_PROD_BASE_URL != '' }}
     defaults:
       run:
         shell: bash

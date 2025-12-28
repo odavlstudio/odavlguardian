@@ -1,141 +1,174 @@
-# 🛡️ ODAVL Guardian — Market Reality Testing Engine
+# 🛡️ ODAVL Guardian
 
-Guardian tests your product before the market does — it runs real-browser checks to catch broken flows early and produces evidence you can trust.
+[![Tier-1 Proof (Level 2)](https://github.com/odavlstudio/odavlguardian/actions/workflows/tier1-proof.yml/badge.svg)](https://github.com/odavlstudio/odavlguardian/actions/workflows/tier1-proof.yml)
 
----
+The Human Reality Check Before You Launch
 
-## Public Preview
+Guardian does not test code.
+Guardian tests reality — like a real human would.
 
-- Distribution: GitHub-only (no npm publish yet)
-- Scope: CLI usage from source
+Most products don't fail because of bad code.
+They fail because something breaks in the real user journey — after it's already too late.
 
----
+ODAVL Guardian is a virtual human
+that visits your website, tries to use it,
+and tells you what will actually happen to your users.
 
-## Requirements
+Before they discover it themselves.
 
-- Node.js 18+
-- npm
-- Playwright browsers (Chromium)
-
-Install browsers once per machine:
-
-```bash
-npx playwright install --with-deps chromium
-```
-
----
-
-## Install from Source
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 Quick Start (Level 1 — Golden Path)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ```bash
-# Clone the repository
-git clone https://github.com/ODAVL/odavl-guardian.git
-cd odavl-guardian
+# Level 1 Reality Check
+guardian --url https://example.com
 
-# Install dependencies
-npm install
-
-# Install Playwright browsers (Chromium)
-npx playwright install --with-deps chromium
+# Equivalent
+guardian reality --url https://example.com
 ```
 
-Quick try:
+Outputs (always saved under ./.odavlguardian/<run>/):
+- decision.json — contains `finalVerdict` (READY | FRICTION | DO_NOT_LAUNCH), `exitCode` (0 | 1 | 2), and explanation
+- summary.md — human-readable summary
+- META.json — run metadata with `result` (PASSED | WARN | FAILED | PENDING) and attempt counts
 
-```bash
-# Quick reality check with startup policy (from source)
-node bin/guardian.js protect https://example.com
+Canonical verdicts (everywhere):
+- READY — Safe to proceed
+- FRICTION — Users will struggle
+- DO_NOT_LAUNCH — Users will fail
 
-# Full reality snapshot with artifacts
-node bin/guardian.js reality --url https://example.com --artifacts ./artifacts
-```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📄 What You Get (Evidence)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
----
+Each run produces:
 
-## CLI Commands
+- **summary.md** — human-readable report
+- **decision.json** — structured verdict with key findings
+- **market-report.html** — full evidence and intelligence
+- **screenshots & traces** — visual proof
 
-Use the CLI from source during Public Preview:
+Everything is local, inspectable, and auditable.
+Artifacts saved to: `.odavlguardian/`
 
-```text
-node bin/guardian.js init                 # Initialize Guardian in the current directory
-node bin/guardian.js protect <url>        # Quick reality check using the startup preset
-node bin/guardian.js presets              # List available policy presets
-node bin/guardian.js attempt [...]        # Execute a single attempt
-node bin/guardian.js reality [...]        # Full market reality snapshot
-node bin/guardian.js baseline save [...]  # Save a named baseline
-node bin/guardian.js baseline check [...] # Check current run against a baseline
-```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚙️ How Guardian Works (Mental Model)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Examples:
+**Observe**
+Guardian discovers real entry points like a human.
 
-```bash
-node bin/guardian.js reality --url https://example.com --policy preset:saas --artifacts ./artifacts
-node bin/guardian.js baseline save --url "http://127.0.0.1:3000?mode=ok" --name ok-baseline --baseline-dir guardian-baselines --artifacts artifacts
-node bin/guardian.js baseline check --url "http://127.0.0.1:3000?mode=ok" --name ok-baseline --baseline-dir guardian-baselines --artifacts artifacts --junit artifacts/junit.xml
-```
+**Attempt**
+It tries actions humans try: navigation, forms, flows.
 
----
+**Verify**
+It checks if the goal was actually achieved.
 
-## Artifacts
+**Decide**
+Guardian gives a clear verdict — backed by evidence.
 
-- Market report: artifacts/market-run-*/market-report.html
-- Snapshot JSON: artifacts/market-run-*/snapshot.json
-- Attempt reports: artifacts/market-run-*/`<attempt-id>`/attempt-report.*
-- Playwright trace: artifacts/market-run-*/trace.zip (when enabled)
-- JUnit XML: artifacts/junit.xml (when requested)
+No assumptions.
+No simulated success.
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 When You Should Use Guardian
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## Exit Codes
+Use Guardian before:
 
-```text
-0  READY            # Safe to proceed - all checks passed
-1  DO_NOT_LAUNCH    # Critical issues found - do not deploy
-2  FRICTION         # Usability issues found - proceed with caution
-```
+- a production deploy
+- a public launch
+- sending a link to investors
+- running paid ads
+- announcing a feature
 
----
+If failure would be embarrassing or expensive —
+Guardian belongs there.
 
-## CI Integration (Minimal)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧠 Guardian's Philosophy: Silence Discipline
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-```yaml
-name: Guardian Reality Check
-on: [push, pull_request]
+Guardian speaks only when it matters.
 
-jobs:
-  guardian:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+If everything is fine → it stays quiet
 
-      - run: npm ci
-      - run: node bin/guardian.js reality --url https://staging.example.com --max-pages 25
+If users will fail → it is very clear
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: guardian-report
-          path: artifacts/market-run-*/market-report.html
-```
+This is intentional.
 
----
+Confidence comes from signal, not noise.
 
-## Docs & Specs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 Who Guardian Is For
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- Contract: [guardian-contract-v1.md](guardian-contract-v1.md)
-- Engine docs: [docs/guardian](docs/guardian)
+Founders who fear silent failure
 
----
+Developers who want truth before deploy
 
-## Status & Known Issues
+Teams who don't want users to be testers
 
-- Public Preview (GitHub-only). CLI usage is via source: see [bin/guardian.js](bin/guardian.js).
-- Website subproject build has an ESLint rule failure (react/no-unescaped-entities). Not required for CLI usage.
-- Tests: most suites pass; see [CHANGELOG.md](CHANGELOG.md) for current failures/regressions, if any.
+If you care about what really happens,
+Guardian is built for you.
 
----
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Status
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-## License
+Public Preview
 
-Licensed under the MIT License. See [LICENSE](LICENSE) for details.
+CLI-first
+
+GitHub distribution
+
+Local & privacy-first
+
+Guardian is already useful.
+It will only become sharper.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧭 What Comes Next
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 Full Documentation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+| Topic | Link | For... |
+|-------|------|--------|
+| **Getting Started** | [docs/guardian/getting-started.md](docs/guardian/getting-started.md) | First-time users |
+| **CLI Reference** | [guardian --help](bin/guardian.js) | All commands and flags |
+| **Presets & Flows** | [docs/guardian/presets.md](docs/guardian/presets.md) | Custom checks and user journeys |
+| **CI/CD Integration** | [docs/guardian/ci-integration.md](docs/guardian/ci-integration.md) | GitHub, GitLab, Bitbucket setup |
+| **Contract (MVP)** | [docs/guardian/guardian-contract-v1.md](docs/guardian/guardian-contract-v1.md) | Specification & guarantees |
+| **Sample Report** | [website/app/report/sample/page.tsx](website/app/report/sample/page.tsx) | Uses in-repo sample artifacts under website/public/sample-artifacts |
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔗 CI/CD Templates
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ready-to-use templates for continuous integration:
+
+- **GitHub Actions** — [.github/workflows/guardian-pr-gate.yml](.github/workflows/guardian-pr-gate.yml)
+- **GitLab CI** — [.gitlab-ci.yml](.gitlab-ci.yml)
+- **Bitbucket Pipelines** — [bitbucket-pipelines.yml](bitbucket-pipelines.yml)
+
+See [CI/CD Integration Guide](docs/guardian/ci-integration.md) for setup instructions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Deeper journey intelligence
+
+Better failure classification
+
+Stronger confidence signals
+
+But the core will never change:
+
+Guardian exists to test reality — not illusions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛠️ License
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MIT — use it, inspect it, trust it.

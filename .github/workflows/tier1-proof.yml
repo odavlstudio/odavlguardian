@@ -1,0 +1,130 @@
+name: Tier-1 Proof (Level 2)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Fixture mode (ok|fail|friction)"
+        required: false
+        default: "ok"
+
+jobs:
+  remote-action-proof:
+    name: Remote Action Proof
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local fixture server
+        run: |
+          node test/start-fixture.js 3000 &
+          echo $! > fixture_pid
+          sleep 2
+
+      - name: Run ODAVL Guardian (remote action)
+        id: guardian
+        uses: odavlstudio/odavlguardian@v1
+        with:
+          url: http://127.0.0.1:3000?mode=${{ github.event.inputs.mode }}
+          preset: startup
+          fail-on: none
+          artifacts: artifacts/tier1-proof
+
+      - name: Assert outputs and artifact bundle
+        run: |
+          test -n "${{ steps.guardian.outputs.verdict }}" || { echo "Missing verdict output" >&2; exit 1; }
+          test -n "${{ steps.guardian.outputs.run-id }}" || { echo "Missing run-id output" >&2; exit 1; }
+          RUN_DIR=$(ls -td artifacts/tier1-proof/* | head -n 1 || true)
+          if [ -z "$RUN_DIR" ]; then
+            echo "No artifact run directory produced" >&2
+            exit 1
+          fi
+          test -f "$RUN_DIR/decision.json" || { echo "decision.json missing" >&2; exit 1; }
+          test -f "$RUN_DIR/summary.md" || { echo "summary.md missing" >&2; exit 1; }
+          echo "✔ Remote action succeeded (verdict=${{ steps.guardian.outputs.verdict }})"
+
+      - name: Upload Tier-1 Proof artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier1-proof-artifacts
+          path: artifacts/tier1-proof
+
+      - name: Stop fixture server
+        if: always()
+        run: |
+          kill $(cat fixture_pid) || true
+
+  golden-run-pack:
+    name: Golden Sample Packaging
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: remote-action-proof
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download proof artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tier1-proof-artifacts
+          path: ./.proof
+
+      - name: Prepare manifest and bundle
+        run: |
+          set -euo pipefail
+          mkdir -p ./.proof-bundle
+          RUN_DIR=$(ls -td ./.proof/* | head -n 1 || true)
+          if [ -z "$RUN_DIR" ]; then
+            echo "No downloaded run directory found" >&2
+            exit 1
+          fi
+          cp -r "$RUN_DIR"/* ./.proof-bundle/
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const root = path.resolve('./.proof-bundle');
+          const files = [];
+          function walk(dir) {
+            for (const f of fs.readdirSync(dir)) {
+              const fp = path.join(dir, f);
+              const st = fs.statSync(fp);
+              if (st.isDirectory()) walk(fp);
+              else files.push({ path: path.relative(root, fp).replace(/\\\\/g, '/') });
+            }
+          }
+          walk(root);
+          fs.writeFileSync(path.join(root, 'manifest.json'), JSON.stringify({ files }, null, 2));
+          NODE
+          echo "✔ Golden sample bundle prepared"
+
+      - name: Upload golden sample bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tier1-proof-golden-sample
+          path: ./.proof-bundle
+
+      - name: Update website public sample and LATEST.json
+        run: |
+          set -euo pipefail
+          dest_dir="website/public/sample-artifacts"
+          mkdir -p "$dest_dir"
+          rsync -a --delete ./.proof-bundle/ "$dest_dir/"
+          echo "{\"path\": \"/sample-artifacts\", \"updatedAt\": \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\" }" > website/public/LATEST.json
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add website/public/sample-artifacts website/public/LATEST.json
+          git commit -m "docs(sample): update golden sample and LATEST.json from Tier-1 proof"
+          git push origin "${GITHUB_REF_NAME:-main}"

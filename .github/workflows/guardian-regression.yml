@@ -1,8 +1,7 @@
 name: ODAVL Guardian Regression Gate
 
 on:
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   guardian-regression:

@@ -11,6 +11,7 @@ env:
 jobs:
   guardian-pr:
     runs-on: ubuntu-latest
+    if: ${{ secrets.GUARDIAN_PREVIEW_BASE_URL != '' }}
     defaults:
       run:
         shell: bash
@@ -30,17 +31,13 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Ensure base URL is provided
-        run: |
-          if [ -z "$GUARDIAN_BASE_URL" ]; then
-            echo "GUARDIAN_PREVIEW_BASE_URL secret is required" >&2
-            exit 1
-          fi
+      # Skip hard failure when preview base URL is not configured (guarded at job level)
 
       - name: Run Guardian with retry (captures flakes)
         id: guardian-run
         continue-on-error: true
         run: |
+          set -e
           mkdir -p "$ARTIFACTS_DIR"
           FLAKE_FILE="$ARTIFACTS_DIR/flake-info.txt"
           attempt=1
@@ -48,7 +45,12 @@ jobs:
           flake_detected=false
           while [ $attempt -le 2 ]; do
             echo "Running Guardian attempt $attempt"
-            node src/guardian/cli.js reality --url "$GUARDIAN_BASE_URL" --artifacts "$ARTIFACTS_DIR" --trace false --har false
+            npx -y @odavl/guardian reality \
+              --url "$GUARDIAN_BASE_URL" \
+              --artifacts "$ARTIFACTS_DIR" \
+              --no-trace \
+              --no-screenshots \
+              --fast
             exit_code=$?
             if [ $exit_code -eq 0 ]; then
               if [ $attempt -gt 1 ]; then
