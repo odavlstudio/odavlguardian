@@ -1,7 +1,7 @@
 {
   "name": "odavl-guardian",
   "displayName": "ODAVL Guardian",
-  "description": "Market reality testing and browser automation for your web applications",
+  "description": "Reality-grade browser checks that return a verdict you can ship with.",
   "version": "1.0.0",
   "publisher": "odavl",
   "license": "MIT",

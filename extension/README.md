@@ -1,50 +1,43 @@
 # ODAVL Guardian — VS Code Extension
 
-Browser testing and market reality validation for your web applications.
+Reality-grade browser checks that return a verdict you can ship with.
 
-**Status:** Beta (v0.3.0) — Synchronized with core Guardian CLI
+## What it does
 
-## Features
-
-- **Run Reality Check**: Execute Guardian CLI tests directly from VS Code
-- **View Last Report**: Instantly open the most recent test report in your browser
+- Run real headless browser journeys and return a verdict: READY, FRICTION, or DO_NOT_LAUNCH
+- Capture evidence: artifacts, reports, timings
+- Produce deterministic exit codes for CI gates
 
 ## Commands
 
-- **Guardian: Run Reality Check** - Run a test against any URL
-- **Guardian: Open Last Report** - Open the latest generated report
+- **Guardian: Run Reality Check** — Execute Guardian against any URL
+- **Guardian: Open Last Report** — Open the most recent report
+
+## Who is this for?
+
+Engineers and QA leads who need auditable, browser-level truth before shipping.
 
 ## Requirements
 
-- **Node.js 18+** must be installed
-- **ODAVL Guardian CLI** must be installed: `npm install -g @odavl/guardian`
+- Node.js 18+
+- ODAVL Guardian CLI: `npm install -g @odavl/guardian`
 
 Verify installation:
 ```bash
 guardian --version
 ```
 
-Should show: `0.3.0` (or later)
+Should show: `1.0.0` (or later)
 
 ## Usage
 
 1. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type "Guardian" to see available commands
-3. Select your desired command
-4. Enter the URL to test (e.g., `https://example.com`)
-5. Results open automatically in your default browser
-
-## Version Matching
-
-This extension version matches the core Guardian CLI version. Both use v0.3.0 (beta).
-
-If versions don't match, reinstall:
-```bash
-npm install -g @odavl/guardian@latest
-```
+2. Type "Guardian" to list commands
+3. Choose a command and provide the target URL
+4. Review the verdict and artifacts in your browser
 
 ## Support
 
-- **Documentation**: [github.com/odavlstudio/odavlguardian/docs](https://github.com/odavlstudio/odavlguardian/tree/main/docs)
-- **Issues**: [github.com/odavlstudio/odavlguardian/issues](https://github.com/odavlstudio/odavlguardian/issues)
-- **Getting Started**: Run `guardian --help` in terminal or read [docs/guardian/getting-started.md](https://github.com/odavlstudio/odavlguardian/blob/main/docs/guardian/getting-started.md)
+- Documentation: [docs](https://github.com/odavlstudio/odavlguardian/tree/main/docs)
+- Issues: [issue tracker](https://github.com/odavlstudio/odavlguardian/issues)
+- Getting Started: [docs/guardian/getting-started.md](https://github.com/odavlstudio/odavlguardian/blob/main/docs/guardian/getting-started.md)
