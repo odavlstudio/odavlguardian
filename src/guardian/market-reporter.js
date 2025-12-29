@@ -565,14 +565,12 @@ class MarketReporter {
     } else if (frictionCount > 0) {
       overallVerdict = 'FRICTION';
     }
-    const { toCanonicalVerdict } = require('./verdicts');
-    const overallCanonical = toCanonicalVerdict(overallVerdict);
 
     return {
       successCount,
       frictionCount,
       failureCount,
-      overallVerdict: overallCanonical
+      overallVerdict
     };
   }
 }

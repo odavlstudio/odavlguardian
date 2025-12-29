@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,45 +19,49 @@ function getWorkspaceRoot(): string | null {
 export function activate(context: vscode.ExtensionContext): void {
   outputChannel = vscode.window.createOutputChannel('Guardian');
   
-  outputChannel.appendLine('Guardian Extension: Honest companion to the Guardian CLI');
+  outputChannel.appendLine('ODAVL Guardian: Market Reality Testing');
   outputChannel.appendLine(`Version: ${context.extension.packageJSON.version}`);
+  outputChannel.appendLine('');
+  outputChannel.appendLine('Quick start: Command Palette → "Guardian: Run Reality Check"');
   outputChannel.appendLine('');
   
   context.subscriptions.push(outputChannel);
   
+  // PRIMARY COMMAND: Run Guardian Reality Check
   const runRealityCheckCommand = vscode.commands.registerCommand(
     'odavlGuardian.runRealityCheck',
     async () => {
-      // Workspace awareness: require workspace
+      // Ensure workspace is open
       const workspaceRoot = getWorkspaceRoot();
       if (!workspaceRoot) {
-        vscode.window.showErrorMessage('Guardian: No workspace folder open. Open a folder to run Guardian.');
+        vscode.window.showErrorMessage('Guardian: Open a workspace folder to run a reality check.');
         return;
       }
 
       if (isRunning) {
-        vscode.window.showWarningMessage('Guardian is already running.');
+        vscode.window.showWarningMessage('Guardian is already running. Please wait for it to complete.');
         return;
       }
 
+      // Ask for URL (with smart defaults)
       const lastUrl = context.globalState.get<string>(LAST_URL_KEY);
-      
       const url = await vscode.window.showInputBox({
-        prompt: 'Enter the URL to test',
+        prompt: 'Enter the URL to test (e.g., https://example.com)',
         placeHolder: 'https://example.com',
-        value: lastUrl,
+        value: lastUrl || '',
         validateInput: (value: string) => {
           const trimmed = value.trim();
-          if (!trimmed) {
-            return 'URL cannot be empty';
+          if (!trimmed) return 'URL cannot be empty';
+          try {
+            new URL(trimmed); // Validate URL format
+            return null;
+          } catch {
+            return 'Invalid URL format. Example: https://example.com';
           }
-          return null;
         }
       });
 
-      if (!url) {
-        return;
-      }
+      if (!url) return; // User cancelled
 
       const trimmedUrl = url.trim();
       isRunning = true;
@@ -65,52 +69,50 @@ export function activate(context: vscode.ExtensionContext): void {
       
       outputChannel.show(true);
       outputChannel.appendLine('');
-      outputChannel.appendLine('='.repeat(80));
-      outputChannel.appendLine(`Guardian Reality Check: This extension launches the Guardian CLI and displays results.`);
-      outputChannel.appendLine(`Target: ${trimmedUrl}`);
-      outputChannel.appendLine(`Workspace: ${workspaceRoot}`);
-      outputChannel.appendLine(`Artifacts: ${path.join(workspaceRoot, GUARDIAN_ARTIFACTS_DIR)}`);
-      outputChannel.appendLine('Config: source=extension (guardian.config.json is not applied by the extension)');
-      outputChannel.appendLine('Note: To change artifacts dir for the extension, adjust VS Code settings or override via CLI args in a custom task.');
-      outputChannel.appendLine('='.repeat(80));
+      outputChannel.appendLine('═'.repeat(80));
+      outputChannel.appendLine(`🔍 Guardian Reality Check`);
+      outputChannel.appendLine(`   URL: ${trimmedUrl}`);
+      outputChannel.appendLine(`   Workspace: ${workspaceRoot}`);
+      outputChannel.appendLine(`   Artifacts: ${path.join(workspaceRoot, GUARDIAN_ARTIFACTS_DIR)}`);
+      outputChannel.appendLine('═'.repeat(80));
       outputChannel.appendLine('');
 
-      // Show progress notification
+      // Show progress
       const progressPromise = vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: `Guardian: Testing ${trimmedUrl}...` },
+        { 
+          location: vscode.ProgressLocation.Notification,
+          title: `Testing ${new URL(trimmedUrl).hostname}...`,
+          cancellable: false
+        },
         async () => {
           return new Promise<void>((resolve) => {
-            // Robust CLI resolution with fallback chain
+            // Resolve Guardian CLI
             const resolved = resolveGuardianCommand(workspaceRoot, trimmedUrl);
             if ('error' in resolved && resolved.error) {
-              outputChannel.appendLine(`[Guardian] Error: ${resolved.error}`);
-              outputChannel.appendLine('');
-              outputChannel.appendLine('Remediation steps:');
-              resolved.remediation?.forEach((step: string) => outputChannel.appendLine(`  1. ${step}`));
-              outputChannel.appendLine('');
-              vscode.window.showErrorMessage(`Guardian: ${resolved.error}`, { modal: true, detail: resolved.remediation?.join('\n') });
+              outputChannel.appendLine(`❌ Error: ${resolved.error}`);
+              if (resolved.remediation) {
+                outputChannel.appendLine('\nRemedy:');
+                resolved.remediation.forEach(step => outputChannel.appendLine(`  • ${step}`));
+              }
+              vscode.window.showErrorMessage(resolved.error);
               isRunning = false;
               resolve();
               return;
             }
 
-            const guardianResolved = resolved as { command: string; args: string[]; cwd: string; source: string };
-            outputChannel.appendLine(`CLI Resolution: ${guardianResolved.source}`);
-            outputChannel.appendLine(`Command: ${guardianResolved.command} ${guardianResolved.args.join(' ')}`);
-            outputChannel.appendLine(`Working Directory: ${guardianResolved.cwd}`);
-            outputChannel.appendLine(`Effective artifacts dir: ${path.join(workspaceRoot, GUARDIAN_ARTIFACTS_DIR)} (extension override)`);
-            outputChannel.appendLine('');
-            outputChannel.appendLine('Output:');
+            const cmd = resolved as { command: string; args: string[]; cwd: string; source: string };
+            outputChannel.appendLine(`[${cmd.source}]`);
             outputChannel.appendLine('');
 
-            const guardianProcess: ChildProcess | null = spawn(guardianResolved.command, guardianResolved.args, {
+            const guardianProcess = spawn(cmd.command, cmd.args, {
               shell: true,
-              cwd: guardianResolved.cwd,
+              cwd: cmd.cwd,
               stdio: ['pipe', 'pipe', 'pipe']
             });
 
             if (!guardianProcess) {
-              vscode.window.showErrorMessage('Guardian: Failed to start process');
+              outputChannel.appendLine('❌ Failed to start Guardian CLI');
+              vscode.window.showErrorMessage('Guardian: Failed to start CLI');
               isRunning = false;
               resolve();
               return;
@@ -125,34 +127,24 @@ export function activate(context: vscode.ExtensionContext): void {
             });
 
             guardianProcess.on('error', (error: NodeJS.ErrnoException) => {
-              outputChannel.appendLine('');
-              outputChannel.appendLine(`[Guardian] Process error: ${error.message}`);
-              
+              outputChannel.appendLine('\n❌ Process error: ' + error.message);
               if (error.code === 'ENOENT') {
-                const remediation = ['Install Guardian', 'Verify binary path', 'Ensure workspace has node_modules or bin/guardian.js'];
-                outputChannel.appendLine('Remediation:');
-                remediation.forEach((step: string) => outputChannel.appendLine(`  - ${step}`));
                 vscode.window.showErrorMessage(
-                  'Guardian CLI not found',
-                  { modal: true, detail: remediation.join('\n') }
+                  'Guardian CLI not found. Install it with: npm install -g @odavl/guardian'
                 );
               } else {
-                vscode.window.showErrorMessage(`Guardian: ${error.message}`, { modal: true });
+                vscode.window.showErrorMessage(`Guardian: ${error.message}`);
               }
-              
               isRunning = false;
               resolve();
             });
 
             guardianProcess.on('close', async (code: number | null) => {
               outputChannel.appendLine('');
-              outputChannel.appendLine('='.repeat(80));
-              outputChannel.appendLine(`Guardian Process Exit: code=${code}`);
-              outputChannel.appendLine('='.repeat(80));
-
-              // Extract and display verdict
-              await displayVerdict(workspaceRoot, code, outputChannel);
+              outputChannel.appendLine('═'.repeat(80));
               
+              // Display verdict and offer next steps
+              await displayVerdict(workspaceRoot, code, outputChannel);
               isRunning = false;
               resolve();
             });
@@ -166,53 +158,41 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(runRealityCheckCommand);
   
+  // SECONDARY COMMAND: Open Last Report (convenience)
   const openLastReportCommand = vscode.commands.registerCommand(
     'odavlGuardian.openLastReport',
     async () => {
       const workspaceRoot = getWorkspaceRoot();
       if (!workspaceRoot) {
-        vscode.window.showErrorMessage('No workspace folder open. Open a folder to locate reports.');
+        vscode.window.showErrorMessage('Guardian: Open a workspace folder first.');
         return;
       }
 
       const artifactsPath = path.join(workspaceRoot, GUARDIAN_ARTIFACTS_DIR);
-
-      outputChannel.appendLine('');
-      outputChannel.appendLine('[Guardian] Searching for reports...');
-      outputChannel.appendLine(`[Guardian] Artifacts path: ${artifactsPath}`);
-
       if (!fs.existsSync(artifactsPath)) {
-        outputChannel.appendLine('[Guardian] No artifacts directory found');
-        vscode.window.showErrorMessage('No Guardian report found yet. Run a check first.');
+        vscode.window.showInformationMessage('No Guardian reports yet. Run a reality check first.');
         return;
       }
 
       try {
         const latest = findLatestReport(artifactsPath);
         if (!latest) {
-          outputChannel.appendLine('[Guardian] No reports found');
-          vscode.window.showErrorMessage('No Guardian report found yet. Run a check first.');
+          vscode.window.showInformationMessage('No Guardian reports found.');
           return;
         }
 
-        outputChannel.appendLine(`[Guardian] Latest report: ${latest.path}`);
-
         const doc = await vscode.workspace.openTextDocument(latest.path);
         await vscode.window.showTextDocument(doc);
-        outputChannel.appendLine('[Guardian] Report opened in editor');
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        outputChannel.appendLine(`[Guardian] Error: ${errorMessage}`);
-        vscode.window.showErrorMessage(`Failed to open report: ${errorMessage}`);
+        const msg = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Failed to open report: ${msg}`);
       }
     }
   );
 
   context.subscriptions.push(openLastReportCommand);
   
-  outputChannel.appendLine('Guardian Extension: Ready');
-  outputChannel.appendLine('Command: Guardian: Run Reality Check');
-  outputChannel.appendLine('Command: Guardian: Open Last Report');
+  outputChannel.appendLine('✅ Guardian extension ready');
 }
 
 function findLatestReport(dir: string): { path: string; mtime: number } | null {
@@ -301,52 +281,36 @@ async function displayVerdict(workspaceRoot: string, exitCode: number | null, ou
     const decisionPath = findLatestFile(artifactsDir, 'decision.json');
     if (!decisionPath) {
       outputChannel.appendLine('[Guardian] No decision.json found');
-      if (exitCode === 0) {
-        vscode.window.showInformationMessage('Guardian: Check completed.');
-      } else {
-        vscode.window.showErrorMessage(`Guardian: Check completed with exit code ${exitCode}`);
-      }
+      const msg = exitCode === 0 ? 'Reality check completed' : `Reality check completed (exit ${exitCode})`;
+      vscode.window.showInformationMessage(`Guardian: ${msg}`);
       return;
     }
 
     const decisionText = fs.readFileSync(decisionPath, 'utf8');
     const decision = JSON.parse(decisionText);
-    const verdict = canonicalVerdict(decision.finalVerdict || 'unknown');
-    const reason = decision.explanation?.explanation || decision.sections?.['Final Verdict']?.explanation || 'No explanation available';
-
-    outputChannel.appendLine(`[Guardian] Verdict: ${verdict}`);
-    outputChannel.appendLine(`[Guardian] Reason: ${reason}`);
-
-    // Find summary.md for "Open summary" button
-    const summaryMdPath = findLatestFile(artifactsDir, 'summary.md');
-    const artifactsFolderUri = vscode.Uri.file(artifactsDir);
-
-    // Build notification with action buttons
-    let message = `Guardian: ${verdict} (exit ${exitCode})`;
-    if (reason) {
-      message += ` — ${reason.substring(0, 100)}${reason.length > 100 ? '...' : ''}`;
-    }
-
-    const buttons: string[] = [];
-    if (summaryMdPath) buttons.push('Open summary.md');
-    buttons.push('Open artifacts folder');
-
-    const choice = await vscode.window.showInformationMessage(message, ...buttons);
+    const verdict = canonicalVerdict(decision.finalVerdict || 'UNKNOWN');
     
-    if (choice === 'Open summary.md' && summaryMdPath) {
+    outputChannel.appendLine(`✅ Verdict: ${verdict}`);
+    outputChannel.appendLine('═'.repeat(80));
+
+    // Find summary.md for detailed report
+    const summaryMdPath = findLatestFile(artifactsDir, 'summary.md');
+
+    // Offer to open report
+    let message = `Guardian: ${verdict}`;
+    const action = await vscode.window.showInformationMessage(message, 'View report', 'Artifacts');
+    
+    if (action === 'View report' && summaryMdPath) {
       const doc = await vscode.workspace.openTextDocument(summaryMdPath);
       await vscode.window.showTextDocument(doc);
-    } else if (choice === 'Open artifacts folder') {
-      await vscode.commands.executeCommand('revealFileInOS', artifactsFolderUri);
+    } else if (action === 'Artifacts') {
+      const uri = vscode.Uri.file(artifactsDir);
+      await vscode.commands.executeCommand('revealFileInOS', uri);
     }
   } catch (error) {
-    const emsg = error instanceof Error ? error.message : String(error);
-    outputChannel.appendLine(`[Guardian] Verdict error: ${emsg}`);
-    if (exitCode === 0) {
-      vscode.window.showInformationMessage('Guardian: Check completed.');
-    } else {
-      vscode.window.showErrorMessage(`Guardian: Check completed with exit code ${exitCode}`);
-    }
+    const msg = error instanceof Error ? error.message : String(error);
+    outputChannel.appendLine(`[Guardian] Verdict error: ${msg}`);
+    vscode.window.showInformationMessage('Guardian: Check completed.');
   }
 }
 

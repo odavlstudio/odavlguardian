@@ -142,6 +142,10 @@ class SnapshotBuilder {
 
     // Add individual attempt results
     for (const result of marketResults.attemptResults) {
+      if (!result || !result.attemptId) {
+        console.warn('⚠️  Attempt result missing attemptId; skipping in snapshot');
+        continue;
+      }
       this.addAttempt(result, runDir);
     }
 

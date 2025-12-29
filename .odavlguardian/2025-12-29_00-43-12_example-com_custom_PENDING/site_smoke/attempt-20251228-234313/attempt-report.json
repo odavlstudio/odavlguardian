@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "runId": "20251228-234314",
+  "timestamp": "2025-12-28T23:43:14.042Z",
+  "attemptId": "site_smoke",
+  "baseUrl": "https://example.com",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "Complete user attempt",
+    "startedAt": "2025-12-28T23:43:13.923Z",
+    "endedAt": "2025-12-28T23:43:14.017Z",
+    "durationMs": 94
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "https://example.com",
+      "status": "success",
+      "startedAt": "2025-12-28T23:43:13.923Z",
+      "endedAt": "2025-12-28T23:43:13.941Z",
+      "durationMs": null,
+      "retries": 0,
+      "screenshots": []
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": null,
+  "successReason": "At least one navigation completed",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

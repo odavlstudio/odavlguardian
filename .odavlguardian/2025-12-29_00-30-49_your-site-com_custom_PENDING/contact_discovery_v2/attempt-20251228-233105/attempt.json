@@ -1,0 +1,40 @@
+{
+  "attemptId": "contact_discovery_v2",
+  "baseUrl": "https://your-site.com",
+  "outcome": "SUCCESS",
+  "startedAt": "2025-12-28T23:31:05.270Z",
+  "endedAt": "2025-12-28T23:31:05.312Z",
+  "totalDurationMs": 42,
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "validators": [],
+  "softFailures": {
+    "hasSoftFailure": false,
+    "failureCount": 0,
+    "warnCount": 0
+  },
+  "successReason": "Found mailto: mailto:info@your-site.com",
+  "error": null,
+  "steps": [
+    {
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "https://your-site.com",
+      "status": "success",
+      "startedAt": "2025-12-28T23:31:05.270Z",
+      "endedAt": "2025-12-28T23:31:05.299Z",
+      "retries": 0,
+      "screenshots": []
+    }
+  ]
+}

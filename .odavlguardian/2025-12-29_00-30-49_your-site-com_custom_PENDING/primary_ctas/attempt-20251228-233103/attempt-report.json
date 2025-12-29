@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "runId": "20251228-233104",
+  "timestamp": "2025-12-28T23:31:04.593Z",
+  "attemptId": "primary_ctas",
+  "baseUrl": "https://your-site.com",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "Complete user attempt",
+    "startedAt": "2025-12-28T23:31:03.707Z",
+    "endedAt": "2025-12-28T23:31:04.560Z",
+    "durationMs": 853
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "https://your-site.com",
+      "status": "success",
+      "startedAt": "2025-12-28T23:31:03.707Z",
+      "endedAt": "2025-12-28T23:31:03.738Z",
+      "retries": 0,
+      "screenshots": []
+    },
+    {
+      "index": 2,
+      "id": "cta_contact",
+      "type": "navigate",
+      "target": "https://your-site.com/contact.html",
+      "status": "success",
+      "error": null,
+      "startedAt": "2025-12-28T23:31:04.183Z",
+      "endedAt": "2025-12-28T23:31:04.560Z",
+      "retries": 0,
+      "screenshots": []
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": null,
+  "successReason": "CTA navigation completed",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

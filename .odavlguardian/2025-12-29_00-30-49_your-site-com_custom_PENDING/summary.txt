@@ -1,0 +1,23 @@
+Final Verdict: FRICTION (exit 1)
+Why this verdict: Verdict unavailable; using conservative interpretation of observed evidence.
+Why not alternatives: Alternative verdicts not evaluated due to unknown state.
+
+What Guardian Observed:
+- Executed 4 attempt(s): contact_discovery_v2 (SUCCESS), contact_form (FAILURE), primary_ctas (SUCCESS), site_smoke (SUCCESS).
+
+What Guardian Could Not Confirm:
+- Failures detected in: contact_form (Step "fill_name" failed: Could not type into element: input[name="name"], input[data-testid="name"], input[data-guardian="name"]).
+- Flow failures: checkout_flow, login_flow, signup_flow.
+- Policy check failed: ❌ Policy evaluation FAILED (exit code 1)
+- Coverage gaps: 2 planned attempt(s) not observed.
+
+Evidence Summary:
+- Attempt outcomes: executed=4, success=3, failed=1, skipped=2.
+- Flow outcomes: success=0, failures=3, friction=0.
+- Market severity observed: CRITICAL.
+- Policy evaluation: failed (exit 1).
+- Baseline comparison: none or no regressions detected.
+
+Limits of This Run:
+- Coverage: 4/6 attempts executed; gaps=2.
+- User-filtered skips: 2.

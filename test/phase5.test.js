@@ -90,7 +90,14 @@ const snapshot1 = createMockSnapshot({
   }
 });
 const policy1 = loadPolicy('/nonexistent/path.json');
-const eval1 = evaluatePolicy(snapshot1, policy1);
+const eval1 = evaluatePolicy(snapshot1, policy1, {
+  coverage: { gaps: 0, total: 1, executed: 1 },
+  evidence: {
+    metrics: { completeness: 1, integrity: 1 },
+    missingScreenshots: false,
+    missingTraces: false
+  }
+});
 assert(eval1.passed === true, 'Should pass with no risks');
 assert(eval1.exitCode === 0, 'Should have exit code 0');
 console.log(`✅ Test 2: ${eval1.summary.substring(0, 30)}...\n`);

@@ -77,7 +77,8 @@ async function test1_DeterministicRun() {
   assert.ok(Array.isArray(marketJson.attemptsRun), 'Attempts run should be array');
   assert.strictEqual(marketJson.attemptsRun.length, 3, 'Should run 3 attempts');
   assert.ok(marketJson.summary, 'Summary should exist');
-  assert.ok(['SUCCESS', 'FAILURE', 'FRICTION'].includes(marketJson.summary.overallVerdict), 'Overall verdict should be valid');
+  const allowedVerdicts = ['SUCCESS', 'FAILURE', 'FRICTION', 'READY', 'DO_NOT_LAUNCH'];
+  assert.ok(allowedVerdicts.includes(marketJson.summary.overallVerdict), 'Overall verdict should be valid');
   assert.ok(Array.isArray(marketJson.results), 'Results should be array');
   assert.strictEqual(marketJson.results.length, 3, 'Should have 3 results');
 

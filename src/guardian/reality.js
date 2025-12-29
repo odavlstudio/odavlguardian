@@ -16,6 +16,7 @@ const { parsePolicyOption } = require('./preset-loader');
 const { evaluatePolicy, loadPolicy } = require('./policy');
 const { aggregateIntelligence } = require('./breakage-intelligence');
 const { writeEnhancedHtml } = require('./enhanced-html-reporter');
+const { loadRules, evaluateRules, buildPolicySignals } = require('./rules-engine');
 const { analyzePatterns, loadRecentRunsForSite } = require('./pattern-analyzer');
 const crypto = require('crypto');
 const {
@@ -148,6 +149,7 @@ async function executeReality(config) {
   // Phase 7.1: Filter attempts and flows
   let filteredAttempts = attempts;
   let filteredFlows = flows;
+  const userFilteredAttempts = [];
   if (attemptsFilter && validation && validation.valid && validation.ids.length > 0) {
     const beforeFilter = Array.isArray(filteredAttempts) ? filteredAttempts.slice() : [];
     filteredAttempts = filterAttempts(attempts, validation.ids);
@@ -165,7 +167,6 @@ async function executeReality(config) {
   const disabledByPreset = new Set((config.disabledAttempts || []).map(id => String(id)));
   const enabledRequestedAttempts = requestedAttempts.filter(id => !disabledByPreset.has(String(id)));
   const presetDisabledAttempts = requestedAttempts.filter(id => disabledByPreset.has(String(id)));
-  const userFilteredAttempts = [];
   const missingAttempts = [];
 
   // Phase 7.1: Resolve timeout profile
@@ -198,7 +199,12 @@ async function executeReality(config) {
     policy: policyName,
     result: 'PENDING'
   });
-  let runDir = path.join(artifactsDir, runDirName);
+  // Normalize artifacts directory to avoid undefined/null paths from CLI/config
+  const safeArtifactsDir = (typeof artifactsDir === 'string' && artifactsDir.trim().length > 0)
+    ? artifactsDir
+    : './.odavlguardian';
+
+  let runDir = path.join(safeArtifactsDir, runDirName);
   fs.mkdirSync(runDir, { recursive: true });
   const runId = runDirName;
   const ciMode = isCiMode();
@@ -617,7 +623,26 @@ async function executeReality(config) {
 
   // Collect results in order
   for (const result of attemptResults_parallel) {
-    if (result) {
+    if (!result) {
+      continue;
+    }
+
+    // Normalize error-only or minimal results
+    if (!result.outcome) {
+      const def = getAttemptDefinition(result.attemptId) || {};
+      attemptResults.push({
+        attemptId: result.attemptId,
+        attemptName: def.name || result.attemptId || 'unknown_attempt',
+        goal: def.goal,
+        riskCategory: def.riskCategory || 'UNKNOWN',
+        source: def.source || 'manual',
+        outcome: 'FAILURE',
+        exitCode: 1,
+        steps: [],
+        friction: null,
+        error: result.error ? (result.error.message || String(result.error)) : 'Unknown attempt error'
+      });
+    } else {
       attemptResults.push(result);
     }
   }
@@ -681,6 +706,15 @@ async function executeReality(config) {
     });
   }
 
+  // Sanitize malformed attempt results (defensive to avoid undefined paths)
+  for (let i = attemptResults.length - 1; i >= 0; i--) {
+    const item = attemptResults[i];
+    if (!item || !item.attemptId) {
+      console.warn('⚠️  Attempt result missing attemptId; removing from artifacts');
+      attemptResults.splice(i, 1);
+    }
+  }
+
   // Preserve requested ordering for downstream artifacts
   const attemptOrder = new Map(requestedAttempts.map((id, idx) => [id, idx]));
   attemptResults.sort((a, b) => (attemptOrder.get(a.attemptId) ?? 999) - (attemptOrder.get(b.attemptId) ?? 999));
@@ -704,8 +738,14 @@ async function executeReality(config) {
 
     try {
       await browser.launch(resolvedTimeout);
-      // Phase 7.1: Apply flows filter
-      let flowsToRun = Array.isArray(filteredFlows) && filteredFlows.length ? filteredFlows : getDefaultFlowIds();
+      // Phase 7.1: Apply flows filter (honor explicit --attempts filters)
+      const flowsFilteredExplicitly = Boolean(attemptsFilter && validation && validation.valid);
+      let flowsToRun;
+      if (flowsFilteredExplicitly) {
+        flowsToRun = Array.isArray(filteredFlows) ? filteredFlows : [];
+      } else {
+        flowsToRun = Array.isArray(filteredFlows) && filteredFlows.length ? filteredFlows : getDefaultFlowIds();
+      }
       
       for (const flowId of flowsToRun) {
         const flowDef = getFlowDefinition(flowId);
@@ -818,6 +858,11 @@ async function executeReality(config) {
 
   // Ensure artifacts exist for skipped attempts so totals remain canonical and inspectable
   for (const result of attemptResults) {
+    if (!result || !result.attemptId) {
+      console.warn('⚠️  Attempt result missing attemptId; skipping artifact write');
+      continue;
+    }
+
     if (!isExecutedAttempt(result)) {
       const attemptDir = path.join(runDir, result.attemptId);
       const attemptRunDir = path.join(attemptDir, 'attempt-skipped');
@@ -1009,7 +1054,7 @@ async function executeReality(config) {
   attemptStats.nearSuccessDetails = nearSuccessDetails;
 
   // Coverage and evidence signals
-  const coverageDenominator = attemptStats.total;
+  const coverageDenominator = Math.max(attemptStats.enabledPlannedCount - skippedUserFiltered.length, 0);
   const coverageNumerator = attemptStats.executed + skippedNotApplicable.length;
   const coverageGaps = Math.max(coverageDenominator - coverageNumerator, 0);
   const coverageSignal = {
@@ -1132,7 +1177,7 @@ async function executeReality(config) {
   const runResultPreManifest = 'PENDING';
   const priorRunDir = runDir;
   const finalRunDirName = makeRunDirName({ timestamp: startTime, url: baseUrl, policy: presetId, result: runResultPreManifest });
-  const finalRunDir = path.join(artifactsDir, finalRunDirName);
+  const finalRunDir = path.join(safeArtifactsDir, finalRunDirName);
   if (finalRunDir !== runDir) {
     fs.renameSync(runDir, finalRunDir);
     runDir = finalRunDir;
@@ -1210,12 +1255,49 @@ async function executeReality(config) {
 
   // Re-run policy evaluation with final evidence metrics
   policyEval = evaluatePolicy(snapshotBuilder.getSnapshot(), policyObj, policySignals);
+
+  // PHASE 3: RULES ENGINE INTEGRATION
+  // Load rules and evaluate for deterministic verdict
+  let ruleEngineOutput = null;
+  try {
+    const rules = loadRules(); // Load from file or use defaults
+    const scanResult = {
+      ...snapshotBuilder.getSnapshot(),
+      url: baseUrl,
+      baseUrl: baseUrl,
+      preset: config.preset || policyName,
+      policy: policyName,
+      goalReached: attemptResults.some(a => a.outcome === 'SUCCESS'),
+      baseline: { diffResult },
+      evidence: {
+        screenshots: [],
+        traces: []
+      }
+    };
+    const scanSignals = buildPolicySignals(scanResult);
+    ruleEngineOutput = evaluateRules(rules, scanSignals);
+    
+    if (!ciMode) {
+      console.log(`\n⚖️  Rules engine evaluation:`);
+      console.log(`   Triggered rules: ${ruleEngineOutput.triggeredRuleIds.join(', ') || 'none'}`);
+      console.log(`   Final verdict: ${ruleEngineOutput.finalVerdict}`);
+      ruleEngineOutput.reasons.slice(0, 3).forEach(r => {
+        console.log(`   • [${r.ruleId}] ${r.message}`);
+      });
+    }
+  } catch (ruleErr) {
+    console.warn(`⚠️  Rules engine failed (non-critical): ${ruleErr.message}`);
+    // Continue with legacy verdict logic if rules engine fails
+    ruleEngineOutput = null;
+  }
+
   const finalDecision = computeFinalVerdict({
     marketImpact,
     policyEval,
     baseline: { baselineCreated, baselineSnapshot, diffResult },
     flows: flowResults,
-    attempts: attemptResults
+    attempts: attemptResults,
+    ruleEngineOutput
   });
   const finalExplanation = buildRealityExplanation({
     finalDecision,
@@ -1245,7 +1327,8 @@ async function executeReality(config) {
     resolved: resolvedConfig,
     attempts: attemptResults,
     coverage: coverageSignal,
-    explanation: finalExplanation
+    explanation: finalExplanation,
+    ruleEngineOutput
   });
   const summaryPathFinal = writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, policyEval, finalExplanation);
 
@@ -1363,8 +1446,8 @@ async function executeReality(config) {
   // Wave 2: Update latest pointers with finalized metadata
   try {
     const metaContent = readMetaJson(runDir);
-    updateLatestGlobal(runDir, runDirName, metaContent, artifactsDir);
-    updateLatestBySite(runDir, runDirName, metaContent, artifactsDir);
+    updateLatestGlobal(runDir, runDirName, metaContent, safeArtifactsDir);
+    updateLatestBySite(runDir, runDirName, metaContent, safeArtifactsDir);
     if (process.env.GUARDIAN_DEBUG) {
       console.log(`✅ Latest pointers updated`);
     }
@@ -1619,7 +1702,21 @@ function computeFlowExitCode(flowResults) {
   return 0;
 }
 
-function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attempts }) {
+function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attempts, ruleEngineOutput = null }) {
+  // PHASE 3: Use rules engine for deterministic verdict computation
+  // If rules engine already produced a decision, use it as the authoritative verdict
+  if (ruleEngineOutput && typeof ruleEngineOutput === 'object') {
+    return {
+      finalVerdict: ruleEngineOutput.finalVerdict,
+      exitCode: ruleEngineOutput.exitCode,
+      reasons: ruleEngineOutput.reasons || [],
+      triggeredRuleIds: ruleEngineOutput.triggeredRuleIds || [],
+      policySignals: ruleEngineOutput.policySignals
+    };
+  }
+
+  // FALLBACK: Legacy verdict logic (if rules engine is not available or returns null)
+  // This maintains backward compatibility with existing flow
   const reasons = [];
 
   const executedAttempts = Array.isArray(attempts)
@@ -1916,7 +2013,7 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
   return { verdict: finalVerdictSection, sections };
 }
 
-function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, resolved, attestation, audit, attempts = [], coverage = {}, explanation }) {
+function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, resolved, attestation, audit, attempts = [], coverage = {}, explanation, ruleEngineOutput = null }) {
   const structuredExplanation = explanation || buildRealityExplanation({ finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, attempts, coverage });
   const safePolicyEval = policyEval || { passed: true, exitCode: 0, summary: 'Policy evaluation not run.' };
   const diff = baseline?.diffResult || baseline?.diff || {};
@@ -1970,7 +2067,10 @@ function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, fin
     },
     auditSummary,
     sections: structuredExplanation.sections,
-    explanation: structuredExplanation.verdict
+    explanation: structuredExplanation.verdict,
+    // PHASE 3: Include rules engine evaluation
+    policySignals: ruleEngineOutput?.policySignals || finalDecision?.policySignals || null,
+    triggeredRules: ruleEngineOutput?.triggeredRuleIds || finalDecision?.triggeredRuleIds || []
   };
 
   const decisionPath = path.join(runDir, 'decision.json');

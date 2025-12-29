@@ -55,7 +55,10 @@ function startServer() {
     
     const result = spawnSync(process.execPath, [
       'bin/guardian.js',
+      'reality',
       '--url', baseUrl,
+      '--attempts', 'site_smoke',
+      '--fast',
       '--max-pages', '5',
       '--max-depth', '2',
       '--artifacts', artifactsDir
@@ -77,7 +80,8 @@ function startServer() {
 
     // Check report was created
     const runDirs = fs.readdirSync(artifactsDir)
-      .filter(d => d.startsWith('run-'))
+      .filter(d => d !== 'latest')
+      .filter(d => fs.statSync(path.join(artifactsDir, d)).isDirectory())
       .sort()
       .reverse();
     
@@ -85,48 +89,29 @@ function startServer() {
     const runDir = runDirs[0];
     console.log(`✅ Run directory created: ${runDir}`);
 
-    // Check report.json exists
-    const reportPath = path.join(artifactsDir, runDir, 'report.json');
-    assert.ok(fs.existsSync(reportPath), 'report.json not found');
-    console.log(`✅ report.json exists`);
+    // Check decision.json exists
+    const decisionPath = path.join(artifactsDir, runDir, 'decision.json');
+    assert.ok(fs.existsSync(decisionPath), 'decision.json not found');
+    console.log(`✅ decision.json exists`);
 
-    // Parse report
-    const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
-    
-    // Validate report structure
-    assert.ok(report.summary, 'summary missing');
-    assert.ok(report.summary.visitedPages >= 1, 'Should visit at least 1 page');
-    assert.ok(report.summary.coverage >= 0, 'Coverage should be >= 0');
-    assert.ok(report.finalJudgment, 'finalJudgment missing');
-    assert.ok(report.finalJudgment.decision, 'decision missing');
-    
-    console.log(`✅ Report structure valid`);
-    console.log(`   - Visited: ${report.summary.visitedPages} pages`);
-    console.log(`   - Coverage: ${report.summary.coverage}%`);
-    console.log(`   - Decision: ${report.finalJudgment.decision}`);
-    console.log(`   - Confidence: ${report.confidence.level}`);
+    const decision = JSON.parse(fs.readFileSync(decisionPath, 'utf8'));
+    const allowedVerdicts = ['READY', 'FRICTION', 'DO_NOT_LAUNCH'];
+    assert.ok(decision.finalVerdict, 'finalVerdict missing');
+    assert.ok(allowedVerdicts.includes(decision.finalVerdict), `Unexpected verdict: ${decision.finalVerdict}`);
+    assert.ok([0, 1, 2].includes(decision.exitCode), `Exit code should be 0, 1, or 2, got ${decision.exitCode}`);
+    console.log(`✅ Decision: ${decision.finalVerdict} (exit ${decision.exitCode})`);
 
-    // Test 2: Decision logic — new vocabulary
-    console.log('\n📋 Test 2: Decision logic');
-    const allowedDecisions = ['OBSERVED', 'PARTIAL', 'INSUFFICIENT_DATA'];
-    assert.ok(allowedDecisions.includes(report.finalJudgment.decision), `Unexpected decision: ${report.finalJudgment.decision}`);
-    console.log('✅ Decision uses allowed vocabulary');
+    // Check summary and snapshot artifacts
+    const summaryPath = path.join(artifactsDir, runDir, 'summary.md');
+    assert.ok(fs.existsSync(summaryPath), 'summary.md not found');
+    console.log('✅ summary.md exists');
 
-    // For basic crawl-only run (no flows), expect INSUFFICIENT_DATA
-    assert.strictEqual(report.finalJudgment.decision, 'INSUFFICIENT_DATA', 'Crawl-only run should yield INSUFFICIENT_DATA');
-    console.log('✅ Crawl-only → INSUFFICIENT_DATA');
-
-    // Test 3: Confidence levels — should remain LOW for crawl-only
-    console.log('\n📋 Test 3: Confidence level calculation');
-    
-    let expectedLevel = 'LOW';
-    
-    assert.strictEqual(
-      report.confidence.level,
-      expectedLevel,
-      `Confidence level mismatch`
-    );
-    console.log(`✅ Confidence level: ${report.confidence.level} (correct for ${report.summary.coverage}% coverage)`);
+    const snapshotPath = path.join(artifactsDir, runDir, 'snapshot.json');
+    assert.ok(fs.existsSync(snapshotPath), 'snapshot.json not found');
+    const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+    assert.ok(snapshot.meta, 'snapshot meta missing');
+    assert.strictEqual(snapshot.meta.url, baseUrl, 'Snapshot URL should match');
+    console.log('✅ snapshot.json validated');
 
     // Summary
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

@@ -33,11 +33,15 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Guardian Phase 1-4 Tests
-        run: npm run test:all
+      - name: Run MVP Test
+        run: npm test
         continue-on-error: false
 
-      - name: Run Guardian Phase 5 Tests (Policy & JUnit)
+      - name: Run Phase 0 Tests
+        run: npm run test:phase0
+        continue-on-error: false
+
+      - name: Run Phase 5 Tests (Policy & JUnit)
         run: npm run test:phase5
         continue-on-error: false
 

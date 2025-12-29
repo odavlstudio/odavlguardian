@@ -56,10 +56,10 @@ async function executeParallel(attempts, executeAttemptFn, maxConcurrency = 1, o
           results[index] = await executeAttemptFn(attempt);
         } else {
           // Mark as skipped if we stopped
-          results[index] = { skipped: true };
+          results[index] = { skipped: true, attemptId: attempt };
         }
       } catch (err) {
-        results[index] = { error: err, skipped: false };
+        results[index] = { error: err, skipped: false, attemptId: attempt };
       } finally {
         executing--;
         // Process next item(s)

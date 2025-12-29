@@ -1,53 +1,100 @@
 # Versioning Policy
 
+Guardian follows **Semantic Versioning** with explicit release state tracking.
+
+---
+
+## Current Release State: **BETA (0.3.0)**
+
+Guardian v0.3.0 is a **working beta**:
+- ✅ Engine runs successfully on real websites (50+ tested)
+- ✅ Core verdicts are stable (READY | FRICTION | DO_NOT_LAUNCH)
+- ✅ CLI is functional and documented
+- ⏳ API stabilization in progress
+- ⏳ Community feedback integration phase
+
+**Before 1.0.0**, we will:
+1. Validate on 100+ diverse real-world websites
+2. Stabilize CLI command naming
+3. Finalize preset behavior
+4. Document edge cases and gotchas
+
+---
+
+## Version Strategy
+
 Guardian follows [Semantic Versioning](https://semver.org/):
 
-- **Major** (1.0.0): Breaking changes to the Guardian Contract or CLI
-- **Minor** (0.x.0): New features, preset changes, non-breaking improvements
-- **Patch** (0.2.x): Bug fixes and security updates
+- **0.x.0 (Beta)**: Core features working, API subject to change, community testing phase
+- **1.0.0 (Stable)**: API stability guaranteed, verdicts locked, ready for production
+- **Major** (2.0.0+): Breaking changes only with clear migration path
+
+---
 
 ## Guardian Contract v1
 
 Guardian's core contract is defined in [guardian-contract-v1.md](guardian-contract-v1.md).
 
-The contract specifies:
+The contract specifies the three verdicts that will never change:
 
-- **Verdict enum**: `READY | FRICTION | DO_NOT_LAUNCH` (stable)
-- **Exit codes**: 0 (READY), 1 (FRICTION), 2 (DO_NOT_LAUNCH) (stable)
-- **decision.json schema**: Structure and required fields (see below)
+- **Verdict enum**: `READY | FRICTION | DO_NOT_LAUNCH` (stable even in beta)
+- **Exit codes**: 0 (READY), 1 (FRICTION), 2 (DO_NOT_LAUNCH) (stable even in beta)
+- **decision.json schema**: Core required fields (see below)
 
-### Stability Guarantees
+### Stability Guarantees (Even in Beta)
 
-**Verdict and Exit Codes**: Stable indefinitely. These will not change without a major version bump.
+**Verdict and Exit Codes**: These are **locked indefinitely**. They will never change, even across major versions.
 
 **decision.json Schema**:
-- Required fields are guaranteed stable: `finalVerdict`, `exitCode`, `runId`, `timestamp`
-- New optional fields may be added in minor releases without warning
-- Removed fields require 2 minor version deprecation notice
+- Required fields (`finalVerdict`, `exitCode`, `runId`, `timestamp`) are **guaranteed stable**
+- New optional fields may be added in future beta or stable releases
+- Removed fields (if any) require 2 minor version deprecation notice
 - Schema changes are documented in [CHANGELOG.md](CHANGELOG.md)
 
 **CLI Interface**:
-- Core commands (`guardian reality`, `guardian smoke`) are stable
-- New commands and flags may be added in minor releases
-- Removed commands/flags require 2 minor version deprecation notice
-- Breaking changes are marked in [CHANGELOG.md](CHANGELOG.md) with upgrade instructions
+- Core reality-check commands are stable: `guardian reality`, `guardian --url`
+- Additional commands (`scan`, `journey-scan`, `attempt`, etc.) are experimental in beta
+- Experimental commands may be renamed, removed, or stabilized in future releases
+- Marked as experimental commands will have `[EXPERIMENTAL]` in help text
+- Breaking changes to stable commands are documented with upgrade instructions
 
 **Presets** (startup, saas, enterprise, landing-demo):
-- Preset names are stable
-- Preset behavior may evolve; use `--preset` + exact version if you need exact reproducibility
+- Preset **names** are stable
+- Preset **behavior** may evolve in beta releases based on community feedback
+- Use `--preset <name> --version <version>` if you need exact reproducibility (if you need exact behavior)
 - Significant preset changes are noted in [CHANGELOG.md](CHANGELOG.md)
 
-## Backward Compatibility
+## Backward Compatibility in Beta
 
-Guardian maintains backward compatibility within a major version:
+During beta (0.x.0), we maintain **verdict stability** but **not full API stability**:
 
-- **Your code calling Guardian**: CLI interface is stable; update scripts only if [CHANGELOG.md](CHANGELOG.md) indicates a breaking change
-- **decision.json consumers**: We will not remove required fields; new optional fields are additive only
-- **CI/CD integrations**: GitHub Actions, GitLab CI, Bitbucket Pipelines integrations are stable
+- **Guardian verdicts**: Stable; code consuming `decision.json` will work across beta releases
+- **CLI core commands**: Stable; automation using `guardian reality --url` will not break
+- **Experimental CLI commands**: May change or be removed without notice
+- **Presets**: Behavior may improve based on real-world testing
+
+---
+
+## Path to 1.0.0
+
+Before version 1.0.0, we will:
+
+1. **Community validation** (100+ real-world sites)
+2. **Edge case resolution** (handle deployment variations, CDNs, authentication edge cases)
+3. **Preset stabilization** (finalize behavior, document thoroughly)
+4. **CLI finalization** (lock command names, remove experimental commands)
+5. **Documentation completion** (guides for common problems)
+
+At 1.0.0:
+- All commands documented in this file become stable
+- All presets behavior locked
+- Full backward compatibility guarantee begins
+- Major.minor.patch semantics enforced strictly
 
 ## Deprecation Policy
 
-If we need to remove or break something:
+If we need to remove or break something in beta:
+
 
 1. **First minor release**: Announce deprecation in [CHANGELOG.md](CHANGELOG.md) with the removal version
 2. **Next minor release**: Add a deprecation warning to CLI output

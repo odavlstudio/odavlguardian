@@ -2,203 +2,172 @@
 
 ![Release](https://img.shields.io/github/v/release/odavlstudio/odavlguardian?label=release&color=blue)
 ![Reality Based](https://img.shields.io/badge/reality--based-verified-informational)
-![Results](https://img.shields.io/badge/results-PASS%20%7C%20WARN%20%7C%20DO__NOT__LAUNCH-orange)
-![Status](https://img.shields.io/badge/status-early%20but%20honest-lightgrey)
+![Results](https://img.shields.io/badge/results-READY%20%7C%20FRICTION%20%7C%20DO__NOT__LAUNCH-orange)
+![Status](https://img.shields.io/badge/status-stable-green)
+![Tests](https://github.com/odavlstudio/odavlguardian/actions/workflows/guardian.yml/badge.svg)
 
-The Reality Guard for Websites
+## What Guardian Does
 
-ODAVL Guardian does not test code.
-It tests reality — before your users do.
+Guardian tests your website the way users actually use it.
 
-What is ODAVL Guardian?
+It opens a real browser, navigates your flows, and tells you if they work—before your users find the problems.
 
-ODAVL Guardian is a reality-based website guard.
+```bash
+# Test your site in one command
+guardian reality --url https://your-site.com
 
-It behaves like a real human visitor, navigates your website end-to-end, and verifies that the actual user experience works as intended — not just that the code exists.
+# Get a verdict
+# Artifact: decision.json (verdict + triggered rules)
+# Artifact: summary.md (human-readable explanation)
+```
 
-Guardian clicks, types, submits, waits, retries, fails, hesitates, and reacts
-exactly like a real user would.
+That's it.
 
-If something breaks in reality, Guardian finds it first.
+## Why It Exists
 
-Why ODAVL Guardian Exists
+Tests pass. Metrics look good. Code is clean.
 
-Most websites don’t fail because of:
+And users still fail.
 
-bad code
+Guardian finds these breaks before they become support tickets.
 
-missing features
+## The Golden Command
 
-poor infrastructure
+```bash
+npm install -g @odavl/guardian
 
-They fail because of small reality breaks:
+guardian reality --url https://example.com
+```
 
-a button that does nothing
+Guardian produces:
 
-a form that never submits
+```
+✅ Verdict: READY (exit code 0)
 
-a checkout that times out
+Artifacts:
+  - .odavlguardian/<timestamp>/decision.json
+  - .odavlguardian/<timestamp>/summary.md
+```
 
-a language switch that lies
+## What You Get
 
-a flow that technically works but never reaches the goal
+### decision.json (Machine-Readable)
 
-These issues are rarely caught by:
+```json
+{
+  "finalVerdict": "READY",
+  "exitCode": 0,
+  "triggeredRules": ["all_goals_reached"],
+  "reasons": [
+    {
+      "ruleId": "all_goals_reached",
+      "message": "All critical flows executed successfully and goals reached",
+      "category": "COMPLIANCE",
+      "priority": 50
+    }
+  ],
+  "policySignals": {
+    "executedCount": 1,
+    "failedCount": 0,
+    "goalReached": true,
+    "domain": "example.com"
+  }
+}
+```
 
-unit tests
+### summary.md (Human-Readable)
 
-integration tests
+Human-friendly explanation of the verdict, what was tested, what Guardian couldn't confirm, and why.
 
-linters
+## The Three Verdicts
 
-static analysis
-
-They are usually discovered by real users — after damage is done.
-
-ODAVL Guardian exists to prevent that.
-
-Core Principle
-
-Reality > Implementation
-
-Guardian does not ask:
-“Is the code correct?”
-
-Guardian asks:
-“Did the human succeed?”
-
-How It Works (Conceptually)
-
-You define a realistic user scenario
-(landing, signup, checkout, dashboard, etc.)
-
-Guardian executes the scenario as a human-like agent
-
-real navigation
-
-real waits
-
-real interactions
-
-real failure conditions
-
-Guardian evaluates the result using reality rules
-
-goal reached or not
-
-partial success
-
-friction
-
-silent failure
-
-Guardian produces a decision, not just logs.
-
-Result Semantics (Honest by Design)
+- **READY** (exit 0) — Goal reached, no failures
+- **FRICTION** (exit 1) — Partial success, warnings, or near-misses
+- **DO_NOT_LAUNCH** (exit 2) — User failed or flow broken
 
 Guardian never pretends success.
 
-It classifies reality into clear outcomes:
+## What Guardian Does (Conceptually)
 
-SAFE — goal reached, no failures
+1. **You define a scenario** — signup, checkout, landing, etc.
+2. **Guardian executes it** — real navigation, real waits, real interactions
+3. **Guardian evaluates** — did the human succeed?
+4. **Guardian produces a decision** — not logs, a verdict
 
-RISK — partial progress, friction, or near-success
+## When to Use Guardian
 
-DO_NOT_LAUNCH — user failed or flow broken
+- **Before launch** — Does signup actually work?
+- **Before scaling** — Does checkout really finish?
+- **Before campaigns** — Does the landing convert?
+- **Before localization** — Does language switching work?
+- **Before deployment** — Did this change break the flow?
 
-No green checkmarks for broken experiences.
+## How It Works
 
-What Guardian Is Not
+Guardian uses a **rules engine** to evaluate reality:
+
+1. Scan results → Policy signals (execution counts, outcomes, etc.)
+2. Policy signals → Rules evaluation (deterministic, transparent)
+3. Rules → Final verdict (READY | FRICTION | DO_NOT_LAUNCH)
+
+**All rules are explicit.** No ML. No guessing. Transparency by design.
+
+## What Guardian Is NOT
 
 Guardian is not:
 
-a unit testing framework
+- A unit test framework
+- A code quality tool
+- A performance benchmark
+- A security scanner
+- A Lighthouse replacement
 
-a code quality tool
+Guardian complements those tools.
 
-a performance benchmark
+## Philosophy
 
-a security scanner
+ODAVL Guardian follows strict principles:
 
-a synthetic lighthouse replacement
+- **No hallucination** — Only what Guardian observed
+- **No fake success** — Honest verdicts always
+- **No optimistic assumptions** — Conservative by default
+- **No silent failures** — If reality is broken, Guardian says so
+- **Evidence > explanation** — Verdicts are data-driven
+- **Reality > implementation** — What users experience matters most
 
-Guardian complements those tools — it does not replace them.
+## Install
 
-Who Is This For?
+```bash
+npm install -g @odavl/guardian
+```
 
-ODAVL Guardian is built for:
+## Quick Start
 
-founders before launch
+```bash
+# Test a website
+guardian reality --url https://example.com
 
-teams before deployment
+# Test with a preset (startup, custom, landing, full)
+guardian reality --url https://example.com --preset startup
 
-SaaS products before scaling
+# See all options
+guardian --help
+```
 
-marketing pages before campaigns
+## VS Code Integration
 
-checkout flows before ads
+Command Palette → "Guardian: Run Reality Check"
 
-international sites before localization
+## Status
 
-Anyone who cares about what users actually experience.
-
-Example Use Cases
-
-“Can a new user actually sign up?”
-
-“Does checkout really finish?”
-
-“Does language switching change content?”
-
-“Does the CTA lead somewhere meaningful?”
-
-“Does the flow succeed without retries?”
-
-If a human can fail — Guardian will find it.
-
-Philosophy
-
-ODAVL Guardian follows a strict philosophy:
-
-No hallucination
-
-No fake success
-
-No optimistic assumptions
-
-No silent failures
-
-If reality is broken, Guardian says so.
-
-Status
-
-Project maturity:
-Early but real.
-Opinionated.
-Built with honesty over hype.
+**Early but real.** Opinionated. Built with honesty over hype.
 
 This is a foundation — not a marketing shell.
 
-Part of ODAVL
+## License
 
-ODAVL Guardian is part of the ODAVL ecosystem, focused on:
+MIT
 
-truth
+---
 
-evidence
-
-safety
-
-reality-driven decisions
-
-More tools may exist — but Guardian protects the human layer.
-
-Final Thought
-
-Tests can pass.
-Metrics can look good.
-Code can be clean.
-
-And users can still fail.
-
-ODAVL Guardian makes sure they don’t.
+Built with the belief that users matter more than code.

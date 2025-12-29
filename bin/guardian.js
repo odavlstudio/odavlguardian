@@ -21,40 +21,72 @@ if (args.length === 1 && (args[0] === '--version' || args[0] === '-v')) {
 // GLOBAL HELP (Level 1): provide a real, working guardian --help
 function printGlobalHelp() {
   console.log(`
-ODAVL Guardian — Level 1
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ODAVL Guardian — Market Reality Testing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Golden Path (Reality Check)
-  guardian --url <url>
+QUICK START (Recommended)
+
   guardian reality --url <url>
 
-What happens
-  - Opens a real browser
-  - Runs curated reality attempts
-  - Writes reports to ./.odavlguardian/<run>/
+  Opens your site in a browser, runs realistic user flows,
+  and generates a verdict (READY | FRICTION | DO_NOT_LAUNCH).
 
-Reports (Level 1)
-  - decision.json  (finalVerdict, exitCode, explanation)
-  - summary.md     (human-readable summary)
+  Output:
+    - .odavlguardian/<timestamp>/decision.json (machine-readable)
+    - .odavlguardian/<timestamp>/summary.md (human-readable)
 
-Canonical Verdicts
-  READY | FRICTION | DO_NOT_LAUNCH
+COMMON OPTIONS
 
-VS Code (Level 1)
+  --url <url>               Site to test (required)
+  --preset <name>          Test preset (startup, custom, etc)
+                            Default: startup
+  --artifacts <dir>        Output directory
+                            Default: .odavlguardian
+  --fast                    Quick run (fewer attempts)
+  --headful                 Show browser window
+
+VS CODE INTEGRATION
+
   Command Palette → "Guardian: Run Reality Check"
-  - Uses ./.odavlguardian as artifacts directory
-  - Shows verdict and opens summary.md
 
-Advanced (Level 2+)
-  guardian scan <url>           One-command full scan (advanced)
-  guardian journey-scan <url>   Single flow journey (advanced)
-  guardian smoke <url>          Fast sanity (advanced)
-  guardian baseline <save|check> Baselines (advanced)
-  guardian list|cleanup         Artifacts mgmt (advanced)
+  Automatically tests your site from VS Code and shows results.
 
-Tips
-  - Pass --artifacts <dir> to override artifacts directory
-  - Local config: guardian.config.json (CLI only)
+ADVANCED COMMANDS
+
+  guardian smoke <url>                 Fast sanity check
+  guardian scan <url>                  Full advanced scan
+  guardian baseline save|check <url>   Manage baselines
+  guardian list                        Show all reports
+  guardian cleanup                     Remove old reports
+
+OPTIONS
+
+  --help, -h                Show this help message
+  --version, -v             Show version
+
+EXAMPLES
+
+  # Test production site
+  guardian reality --url https://example.com
+
+  # Test with staging preset
+  guardian reality --url https://staging.example.com --preset startup
+
+  # Quick test with no screenshots
+  guardian smoke --url https://example.com
+
+  # Save baseline for regression detection
+  guardian baseline save --url https://example.com
+
+CONFIG
+
+  Guardian automatically detects guardian.config.json in your project
+  root. Create one to customize crawl depth, timeouts, etc. See docs
+  for the schema.
+
+DOCUMENTATION
+
+  More info: https://github.com/odavlstudio/odavlguardian
 `);
 }
 
@@ -71,6 +103,9 @@ if (!validation.valid) {
   reportFlagError(validation);
   process.exit(2);
 }
+
+// PHASE 4: Config validation (fail fast on invalid config)
+const { loadAndValidateConfig, reportConfigIssues, getDefaultConfig } = require('../src/guardian/config-validator');
 
 // PHASE 6: First-run detection (lightweight)
 const { isFirstRun, markAsRun, printWelcome, printFirstRunHint } = require('../src/guardian/first-run');
@@ -1464,6 +1499,14 @@ Exit Codes:
 
 async function main() {
   const args = process.argv.slice(2);
+
+  // PHASE 4: Validate guardian.config.json early (fail fast if invalid)
+  const cwd = process.cwd();
+  const configValidation = loadAndValidateConfig(cwd);
+  if (!configValidation.valid) {
+    reportConfigIssues(configValidation);
+    process.exit(2);
+  }
 
   // Phase 8: Helper to check plan before scan
   function checkPlanBeforeScan(config, options = {}) {

@@ -1,0 +1,85 @@
+{
+  "version": "1.0.0",
+  "runId": "20251228-233103",
+  "timestamp": "2025-12-28T23:31:03.064Z",
+  "attemptId": "site_smoke",
+  "baseUrl": "https://your-site.com",
+  "outcome": "SUCCESS",
+  "meta": {
+    "goal": "Complete user attempt",
+    "startedAt": "2025-12-28T23:31:01.648Z",
+    "endedAt": "2025-12-28T23:31:02.999Z",
+    "durationMs": 1351
+  },
+  "steps": [
+    {
+      "index": 1,
+      "id": "navigate_home",
+      "type": "navigate",
+      "target": "https://your-site.com",
+      "status": "success",
+      "startedAt": "2025-12-28T23:31:01.648Z",
+      "endedAt": "2025-12-28T23:31:01.682Z",
+      "durationMs": null,
+      "retries": 0,
+      "screenshots": []
+    },
+    {
+      "index": 2,
+      "id": "nav_Contact",
+      "type": "navigate",
+      "target": "https://your-site.com/contact.html",
+      "status": "success",
+      "error": null,
+      "startedAt": "2025-12-28T23:31:02.147Z",
+      "endedAt": "2025-12-28T23:31:02.553Z",
+      "durationMs": 406,
+      "retries": 0,
+      "screenshots": []
+    },
+    {
+      "index": 3,
+      "id": "nav_Privacy Statement",
+      "type": "navigate",
+      "target": "https://your-site.com/privacy.html",
+      "status": "success",
+      "error": null,
+      "startedAt": "2025-12-28T23:31:02.553Z",
+      "endedAt": "2025-12-28T23:31:02.763Z",
+      "durationMs": 210,
+      "retries": 0,
+      "screenshots": []
+    },
+    {
+      "index": 4,
+      "id": "nav_Hosting Plans",
+      "type": "navigate",
+      "target": "https://your-site.com/services.html",
+      "status": "success",
+      "error": null,
+      "startedAt": "2025-12-28T23:31:02.763Z",
+      "endedAt": "2025-12-28T23:31:02.999Z",
+      "durationMs": 236,
+      "retries": 0,
+      "screenshots": []
+    }
+  ],
+  "friction": {
+    "isFriction": false,
+    "signals": [],
+    "summary": null,
+    "reasons": [],
+    "thresholds": {
+      "totalDurationMs": 2500,
+      "stepDurationMs": 1500,
+      "retryCount": 1
+    },
+    "metrics": {}
+  },
+  "error": null,
+  "successReason": "At least one navigation completed",
+  "evidence": {
+    "screenshotDir": "attempt-screenshots",
+    "tracePath": "trace.zip"
+  }
+}

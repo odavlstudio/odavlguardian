@@ -77,7 +77,7 @@ function validateFlags(argv) {
         if ((flagName.includes('--') && !arg.includes('=')) || (flagName === '-w')) {
           const expectsValue = ![
             '--headful', '--watch', '-w', '--discover', '--universal',
-            '--no-trace', '--no-screenshots', '--help', '-h'
+            '--no-trace', '--no-screenshots', '--help', '-h', '--fast', '--fail-fast'
           ].includes(flagName);
 
           if (expectsValue && i + 1 < subArgs.length && subArgs[i + 1].startsWith('-')) {
