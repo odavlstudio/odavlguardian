@@ -1,7 +1,7 @@
 /**
  * Verdict Clarity — Human-Readable Verdict Output
  * 
- * Formats verdicts with clear actions, top reasons, and testing clarity.
+ * Formats verdicts with clear actions, top reasons, and observation clarity.
  * Production-grade DX improvement for CLI output.
  */
 
@@ -114,16 +114,16 @@ function extractTopReasons(verdict = {}, attempts = [], flows = []) {
 }
 
 /**
- * Build testing clarity section
- * Shows what was tested and what was not, with brief reasons
+ * Build observation clarity section
+ * Shows what was observed and what was not, with brief reasons
  * 
  * @param {Object} coverage - Coverage metrics
  * @param {Array} attempts - Attempt results
- * @returns {Object} { tested, notTested } objects
+ * @returns {Object} { observed, notObserved } objects
  */
-function buildTestingClarity(coverage = {}, attempts = []) {
+function buildObservationClarity(coverage = {}, attempts = []) {
   const executedAttempts = (attempts || []).filter(a => a.executed);
-  const testedCount = executedAttempts.length;
+  const observedCount = executedAttempts.length;
 
   const skipReasons = {
     disabledByPreset: (coverage.skippedDisabledByPreset || []).length,
@@ -132,7 +132,7 @@ function buildTestingClarity(coverage = {}, attempts = []) {
     missing: (coverage.skippedMissing || []).length
   };
 
-  const notTestedCount = Object.values(skipReasons).reduce((a, b) => a + b, 0);
+  const notObservedCount = Object.values(skipReasons).reduce((a, b) => a + b, 0);
 
   // Extract key attempt names if available
   const keyAttempts = executedAttempts
@@ -141,12 +141,12 @@ function buildTestingClarity(coverage = {}, attempts = []) {
     .filter(Boolean);
 
   return {
-    tested: {
-      count: testedCount,
+    observed: {
+      count: observedCount,
       examples: keyAttempts
     },
-    notTested: {
-      count: notTestedCount,
+    notObserved: {
+      count: notObservedCount,
       reasons: skipReasons
     }
   };
@@ -157,15 +157,15 @@ function buildTestingClarity(coverage = {}, attempts = []) {
  * Professional, concise, no emojis or ASCII art
  * 
  * @param {string} verdict - READY, FRICTION, or DO_NOT_LAUNCH
- * @param {Object} data - { reasons, explanation, tested, notTested, config, args }
+ * @param {Object} data - { reasons, explanation, observed, notObserved, config, args }
  * @returns {string} Formatted verdict clarity block
  */
 function formatVerdictClarity(verdict, data = {}) {
   const {
     reasons = [],
     explanation = '',
-    tested = {},
-    notTested = {},
+    observed = {},
+    notObserved = {},
     config = {},
     args = []
   } = data;
@@ -205,34 +205,34 @@ function formatVerdictClarity(verdict, data = {}) {
     lines.push('');
   }
 
-  // Testing Clarity
-  if (tested && tested.count !== undefined) {
-    lines.push('What Was Tested');
+  // Observation Clarity
+  if (observed && observed.count !== undefined) {
+    lines.push('What Was Observed');
     lines.push('────────────────────────────────────────────────────────────');
-    lines.push(`${tested.count} user flow(s) executed`);
-    if (tested.examples && tested.examples.length > 0) {
-      lines.push(`Key flows: ${tested.examples.join(', ')}`);
+    lines.push(`${observed.count} user flow(s) executed successfully`);
+    if (observed.examples && observed.examples.length > 0) {
+      lines.push(`Key flows: ${observed.examples.join(', ')}`);
     }
     lines.push('');
   }
 
-  if (notTested && notTested.count !== undefined && notTested.count > 0) {
-    lines.push('What Was NOT Tested');
+  if (notObserved && notObserved.count !== undefined && notObserved.count > 0) {
+    lines.push('What Was NOT Observed');
     lines.push('────────────────────────────────────────────────────────────');
     const reasonLabels = [];
-    if (notTested.reasons.disabledByPreset > 0) {
-      reasonLabels.push(`${notTested.reasons.disabledByPreset} disabled by preset`);
+    if (notObserved.reasons.disabledByPreset > 0) {
+      reasonLabels.push(`${notObserved.reasons.disabledByPreset} disabled by preset`);
     }
-    if (notTested.reasons.userFiltered > 0) {
-      reasonLabels.push(`${notTested.reasons.userFiltered} user-filtered`);
+    if (notObserved.reasons.userFiltered > 0) {
+      reasonLabels.push(`${notObserved.reasons.userFiltered} user-filtered`);
     }
-    if (notTested.reasons.notApplicable > 0) {
-      reasonLabels.push(`${notTested.reasons.notApplicable} not applicable`);
+    if (notObserved.reasons.notApplicable > 0) {
+      reasonLabels.push(`${notObserved.reasons.notApplicable} not applicable`);
     }
-    if (notTested.reasons.missing > 0) {
-      reasonLabels.push(`${notTested.reasons.missing} missing`);
+    if (notObserved.reasons.missing > 0) {
+      reasonLabels.push(`${notObserved.reasons.missing} missing`);
     }
-    lines.push(`${notTested.count} flow(s) not tested: ${reasonLabels.join(', ')}`);
+    lines.push(`${notObserved.count} flow(s) not observed: ${reasonLabels.join(', ')}`);
     lines.push('');
   }
 
@@ -266,7 +266,7 @@ function getNextAction(verdict) {
  * Integrates with Guardian execution flow
  * 
  * @param {string} verdict - READY, FRICTION, or DO_NOT_LAUNCH
- * @param {Object} data - Verdict data { reasons, explanation, tested, notTested, config, args }
+ * @param {Object} data - Verdict data { reasons, explanation, observed, notObserved, config, args }
  */
 function printVerdictClarity(verdict, data = {}) {
   const output = formatVerdictClarity(verdict, data);
@@ -292,7 +292,7 @@ module.exports = {
   getActionHint,
   getNextAction,
   extractTopReasons,
-  buildTestingClarity,
+  buildObservationClarity,
   formatVerdictClarity,
   printVerdictClarity
 };

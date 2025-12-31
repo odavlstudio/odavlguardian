@@ -8,6 +8,7 @@ const { getDefaultFlowIds, getFlowDefinition } = require('./flow-registry');
 const { GuardianBrowser } = require('./browser');
 const { GuardianCrawler } = require('./crawler');
 const { SnapshotBuilder, saveSnapshot, loadSnapshot } = require('./snapshot');
+const { HumanJourneyContext } = require('./human-journey-context');
 const { DiscoveryEngine } = require('./discovery-engine');
 const { buildAutoAttempts } = require('./auto-attempt-builder');
 const { baselineExists, loadBaseline, saveBaselineAtomic, createBaselineFromSnapshot, compareSnapshots } = require('./baseline-storage');
@@ -41,7 +42,14 @@ const { findContactOnPage, formatDetectionForReport } = require('./semantic-cont
 const { formatRunSummary } = require('./run-summary');
 const { isCiMode } = require('./ci-mode');
 const { formatCiSummary, deriveBaselineVerdict } = require('./ci-output');
-const { toCanonicalVerdict, mapExitCodeFromCanonical } = require('./verdicts');
+const { normalizeCanonicalVerdict, toCanonicalVerdict, mapExitCodeFromCanonical, toInternalVerdict } = require('./verdicts');
+const { printVerdictClarity, extractTopReasons, buildObservationClarity, getVerdictExplanation } = require('./verdict-clarity');
+const { printErrorClarity } = require('./error-clarity');
+const { printUnifiedOutput } = require('./output-readability');
+const { computeFinalOutcome } = require('./final-outcome');
+const { deriveActionHints, formatHintsForCLI, formatHintsForSummary } = require('./action-hints');
+const { buildHonestyContract, enforceHonestyInVerdict, formatHonestyForCLI, validateHonestyContract } = require('./honesty');
+const { evaluatePrelaunchGate, writeReleaseDecisionArtifact } = require('./prelaunch-gate');
 // Phase 7.1: Performance modes
 const { getTimeoutProfile } = require('./timeout-profiles');
 const { validateAttemptFilter, filterAttempts, filterFlows } = require('./attempts-filter');
@@ -58,9 +66,21 @@ const { updateLatestGlobal, updateLatestBySite } = require('./run-latest');
 // Wave 3: Smart attempt selection
 const { inspectSite, detectProfile } = require('./site-introspection');
 const { filterAttempts: filterAttemptsByRelevance, summarizeIntrospection } = require('./attempt-relevance');
+const { resolveHumanIntent, shouldExecuteAttempt } = require('./human-intent-resolver');
+// Phase 10: Site Intelligence Engine
+const { analyzeSite, isFlowApplicable, SITE_TYPES, CAPABILITIES } = require('./site-intelligence');
+// Phase 11: Observed Capabilities (VISIBLE = MUST WORK)
+const {
+  extractObservedCapabilities,
+  filterAttemptsByObservedCapabilities,
+  filterFlowsByObservedCapabilities,
+  createNotApplicableAttemptResult,
+  createNotApplicableFlowResult
+} = require('./observed-capabilities');
 // Stage II: Golden path
 const { isFirstRun, markFirstRunComplete, applyFirstRunProfile } = require('./first-run-profile');
 const { applyLocalConfig } = require('./config-loader');
+const { mergeCoveragePack } = require('./coverage-packs');
 
 function applySafeDefaults(config, warn) {
   const updated = { ...config };
@@ -68,9 +88,14 @@ function applySafeDefaults(config, warn) {
     if (warn) warn('No attempts provided; using curated defaults.');
     updated.attempts = getDefaultAttemptIds();
   }
-  if (!Array.isArray(updated.flows) || updated.flows.length === 0) {
+  // PHASE 9: Only apply flow defaults if flows property is completely missing (undefined/null)
+  // If flows is explicitly set to [] (empty array), respect that choice
+  if (updated.flows === undefined || updated.flows === null) {
     if (warn) warn('No flows provided; using curated defaults.');
     updated.flows = getDefaultFlowIds();
+  } else if (!Array.isArray(updated.flows)) {
+    // If flows exists but is not an array, normalize to empty array
+    updated.flows = [];
   }
   return updated;
 }
@@ -82,14 +107,55 @@ const SKIP_CODES = {
   NOT_APPLICABLE: 'NOT_APPLICABLE',
   ENGINE_MISSING: 'ENGINE_MISSING',
   USER_FILTERED: 'USER_FILTERED',
-  PREREQ: 'PREREQUISITE_FAILED'
+  PREREQ: 'PREREQUISITE_FAILED',
+  HUMAN_INTENT_MISMATCH: 'HUMAN_INTENT_MISMATCH'
 };
+
+function calculateCoverage({ attemptStats, skippedNotApplicable = [], skippedMissing = [], skippedUserFiltered = [], skippedDisabledByPreset = [] }) {
+  const enabledPlannedCount = attemptStats.enabledPlannedCount || 0;
+  const executedCount = attemptStats.executed || 0;
+  const userFilteredCount = skippedUserFiltered.length;
+  const notApplicableCount = skippedNotApplicable.length;
+  const coverageDenominator = Math.max(enabledPlannedCount - userFilteredCount - notApplicableCount, 0);
+  const coverageNumerator = executedCount;
+  const coverageGaps = Math.max(coverageDenominator - coverageNumerator, 0);
+
+  const coverage = {
+    gaps: coverageGaps,
+    executed: coverageNumerator,
+    total: coverageDenominator,
+    details: attemptStats.skippedDetails,
+    disabled: attemptStats.disabledDetails,
+    skippedDisabledByPreset: skippedDisabledByPreset.map(a => ({ attempt: a.attemptId, reason: a.skipReason || 'Disabled by preset', code: SKIP_CODES.DISABLED_BY_PRESET })),
+    skippedNotApplicable: skippedNotApplicable.map(a => ({ attempt: a.attemptId, reason: a.skipReason })),
+    skippedMissing: skippedMissing.map(a => ({ attempt: a.attemptId, reason: a.skipReason })),
+    skippedUserFiltered: skippedUserFiltered.map(a => ({ attempt: a.attemptId, reason: a.skipReason })),
+    counts: {
+      executedCount: coverageNumerator,
+      enabledPlannedCount,
+      disabledPlannedCount: attemptStats.disabledPlannedCount || 0,
+      skippedDisabledByPreset: skippedDisabledByPreset.length,
+      skippedUserFiltered: userFilteredCount,
+      skippedNotApplicable: notApplicableCount,
+      skippedMissing: skippedMissing.length,
+      excludedNotApplicableFromTotal: notApplicableCount
+    }
+  };
+
+  return { coverage, denominator: coverageDenominator, numerator: coverageNumerator };
+}
 
 // Removed compact decision packet writer for Level 1 singleton decision schema
 
 async function executeReality(config) {
   const baseWarn = (...args) => console.warn(...args);
   const firstRunMode = isFirstRun();
+  
+  // Display first-run welcome message if applicable
+  // Uses existing first-run module which handles CI/quiet/TTY detection
+  const { printFirstRunIntroIfNeeded } = require('./first-run');
+  printFirstRunIntroIfNeeded(config, process.argv.slice(2));
+  
   // Apply first-run profile if needed (conservative defaults)
   const profiledConfig = firstRunMode ? applyFirstRunProfile(config) : config;
   const safeConfig = applySafeDefaults(profiledConfig, baseWarn);
@@ -124,6 +190,10 @@ async function executeReality(config) {
     attemptsFilter = null,
     // Phase 7.2: Parallel execution
     parallel = 1
+    ,
+    // Pre-launch gate
+    prelaunch = false,
+    prelaunchAllowFriction = false
   } = safeConfig;
 
   // Phase 7.1: Validate and apply attempts filter
@@ -163,9 +233,9 @@ async function executeReality(config) {
     }
   }
 
-  const requestedAttempts = Array.isArray(filteredAttempts) ? filteredAttempts.slice() : [];
+  let requestedAttempts = Array.isArray(filteredAttempts) ? filteredAttempts.slice() : [];
   const disabledByPreset = new Set((config.disabledAttempts || []).map(id => String(id)));
-  const enabledRequestedAttempts = requestedAttempts.filter(id => !disabledByPreset.has(String(id)));
+  let enabledRequestedAttempts = requestedAttempts.filter(id => !disabledByPreset.has(String(id)));
   const presetDisabledAttempts = requestedAttempts.filter(id => disabledByPreset.has(String(id)));
   const missingAttempts = [];
 
@@ -347,6 +417,21 @@ async function executeReality(config) {
     }
   }
 
+  // Apply intent-aligned coverage packs based on detected site profile
+  const coveragePackProfile = siteProfile === 'unknown' && siteIntrospection?.hasContactForm
+    ? 'landing'
+    : siteProfile;
+  if (coveragePackProfile && coveragePackProfile !== 'unknown') {
+    const { attempts: updatedRequested, added } = mergeCoveragePack(requestedAttempts, coveragePackProfile, { disabledByPreset });
+    requestedAttempts = updatedRequested;
+    if (added.length > 0) {
+      enabledRequestedAttempts = mergeCoveragePack(enabledRequestedAttempts, coveragePackProfile, { disabledByPreset }).attempts;
+      if (!ciMode) {
+        console.log(`\n➕ Added ${added.length} attempt(s) from ${coveragePackProfile} coverage pack`);
+      }
+    }
+  }
+
   // Optional: Discovery Engine (Phase 4) — deterministic safe exploration
   if (enableDiscovery) {
     console.log(`\n🔎 Running discovery engine...`);
@@ -373,7 +458,8 @@ async function executeReality(config) {
   // Phase 2: Generate auto-attempts from discovered interactions
   let autoAttempts = [];
   if (enableAutoAttempts && discoveryResult && discoveryResult.interactionsDiscovered > 0) {
-    console.log(`\n🤖 Generating auto-attempts from discoveries...`);
+        ruleEngineOutput,
+        siteIntelligence
     try {
       // Get discovered interactions (stored in engine instance)
       const discoveredInteractions = discoveryResult.interactions || [];
@@ -437,6 +523,10 @@ async function executeReality(config) {
     attemptsToRun = relevanceResult.toRun.map(a => a.id);
     attemptsSkipped = relevanceResult.toSkip;
     
+    // IMPORTANT: Also update enabledRequestedAttempts to match
+    const skippedAttemptIds = attemptsSkipped.map(s => s.attempt);
+    enabledRequestedAttempts = enabledRequestedAttempts.filter(id => !skippedAttemptIds.includes(id));
+    
     if (attemptsSkipped.length > 0 && !ciMode) {
       console.log(`\n⊘ Skipping ${attemptsSkipped.length} irrelevant attempt(s):`);
       for (const skip of attemptsSkipped) {
@@ -445,9 +535,57 @@ async function executeReality(config) {
     }
   }
 
-  // Phase 7.2: Print parallel mode if enabled
+  // Human Intent Resolution: Determine what a real human would actually try on this site
+  let humanIntentResolution = null;
+  let attemptsBlockedByIntent = [];
+  if (siteIntrospection) {
+    humanIntentResolution = resolveHumanIntent({
+      siteProfile,
+      introspection: siteIntrospection,
+      entryUrl: baseUrl
+    });
+    
+    if (!ciMode) {
+      console.log(`\n🧠 Human Intent Analysis:`);
+      console.log(`   Primary goal: ${humanIntentResolution.primaryGoal} (confidence: ${Math.round(humanIntentResolution.confidence * 100)}%)`);
+      if (humanIntentResolution.secondaryGoals.length > 0) {
+        console.log(`   Secondary goals: ${humanIntentResolution.secondaryGoals.join(', ')}`);
+      }
+      console.log(`   Reasoning: ${humanIntentResolution.reasoning}`);
+    }
+    
+    // Filter attempts based on human intent
+    const attemptsAfterIntent = [];
+    for (const attemptId of attemptsToRun) {
+      const decision = shouldExecuteAttempt(attemptId, humanIntentResolution);
+      if (decision.shouldExecute) {
+        attemptsAfterIntent.push(attemptId);
+      } else {
+        attemptsBlockedByIntent.push({
+          attempt: attemptId,
+          reason: decision.reason,
+          humanReason: decision.humanReason
+        });
+      }
+    }
+    
+    attemptsToRun = attemptsAfterIntent;
+    
+    if (attemptsBlockedByIntent.length > 0 && !ciMode) {
+      console.log(`\n🚫 Blocked by Human Intent (${attemptsBlockedByIntent.length} attempts):`);
+      for (const blocked of attemptsBlockedByIntent) {
+        console.log(`    • ${blocked.attempt}`);
+        console.log(`      → ${blocked.humanReason}`);
+      }
+    }
+    
+    // Store human intent in snapshot
+    snapshotBuilder.setHumanIntent(humanIntentResolution);
+  }
+
+  // Phase 7.2: Journey mode runs sequentially to keep shared state
   if (!ciMode && validatedParallel > 1) {
-    console.log(`\n⚡ PARALLEL: ${validatedParallel} concurrent attempts`);
+    console.log(`\n⚠️  Human Journey mode: forcing sequential execution (parallel request=${validatedParallel})`);
   }
 
   // Phase 7.3: Initialize browser pool (single browser per run)
@@ -467,183 +605,175 @@ async function executeReality(config) {
     throw new Error(`Failed to launch browser pool: ${err.message}`);
   }
 
-  // Execute all registered attempts (with optional parallelism)
+  // Human Journey Context (stateful across attempts)
+  const journeyContext = new HumanJourneyContext({
+    baseUrl,
+    primaryGoal: humanIntentResolution?.primaryGoal || 'EXPLORE',
+    secondaryGoals: humanIntentResolution?.secondaryGoals || [],
+    intentConfidence: humanIntentResolution?.confidence || 0.3
+  });
+
+  // Execute attempts sequentially with adaptation
   console.log(`\n🎬 Executing attempts...`);
-  
-  // Shared state for fail-fast coordination
-  let shouldStopScheduling = false;
-  
-  // Phase 7.2: Execute attempts with bounded parallelism
-  // Phase 7.3: Pass browser pool to attempts
-  // Phase 7.4: Check applicability before executing
-  const attemptResults_parallel = await executeParallel(
-    attemptsToRun,
-    async (attemptId) => {
-      const attemptDef = getAttemptDefinition(attemptId);
-      if (!attemptDef) {
-        missingAttempts.push(attemptId);
-        return {
-          attemptId,
-          attemptName: attemptId,
-          goal: 'Unknown',
-          riskCategory: 'UNKNOWN',
-          source: 'manual',
+  const attemptQueue = [...attemptsToRun];
+  const attemptedSet = new Set();
+
+  while (attemptQueue.length > 0 && !journeyContext.shouldAbandonJourney()) {
+    const attemptId = attemptQueue.shift();
+    if (!attemptId || attemptedSet.has(attemptId)) {
+      continue;
+    }
+    attemptedSet.add(attemptId);
+
+    const attemptDef = getAttemptDefinition(attemptId);
+    if (!attemptDef) {
+      missingAttempts.push(attemptId);
+      attemptResults.push({
+        attemptId,
+        attemptName: attemptId,
+        goal: 'Unknown',
+        riskCategory: 'UNKNOWN',
+        source: 'manual',
+        outcome: 'SKIPPED',
+        skipReason: 'Attempt not registered',
+        skipReasonCode: SKIP_CODES.ENGINE_MISSING,
+        exitCode: 0,
+        steps: [],
+        friction: null,
+        error: null
+      });
+      continue;
+    }
+
+    if (!ciMode) {
+      console.log(`  • ${attemptDef.name}...`);
+    }
+
+    const attemptArtifactsDir = path.join(runDir, attemptId);
+    const { context, page } = await browserPool.createContext({ timeout: resolvedTimeout });
+    journeyContext.beforeAttempt(attemptId);
+
+    let result;
+    try {
+      await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: resolvedTimeout });
+
+      // Phase 7.4: Check prerequisites before executing attempt
+      const prereqCheck = await checkPrerequisites(page, attemptId, 2000);
+      if (!prereqCheck.canProceed) {
+        if (!ciMode) {
+          console.log(`    ⊘ Skipped: ${prereqCheck.reason}`);
+        }
+        result = {
           outcome: 'SKIPPED',
-          skipReason: 'Attempt not registered',
-          skipReasonCode: SKIP_CODES.ENGINE_MISSING,
+          skipReason: prereqCheck.reason,
+          skipReasonCode: SKIP_CODES.PREREQ,
           exitCode: 0,
           steps: [],
           friction: null,
           error: null
         };
-      }
+      } else {
+        const { AttemptEngine } = require('./attempt-engine');
+        const engine = new AttemptEngine({ attemptId, timeout: resolvedTimeout });
+        const applicabilityCheck = await engine.checkAttemptApplicability(page, attemptId);
 
-      if (!ciMode) {
-        console.log(`  • ${attemptDef.name}...`);
-      }
-
-      const attemptArtifactsDir = path.join(runDir, attemptId);
-      
-      // Phase 7.3: Create isolated context for this attempt
-      const { context, page } = await browserPool.createContext({
-        timeout: resolvedTimeout
-      });
-
-      let result;
-      try {
-        // Navigate to site to check prerequisites and applicability
-        await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: resolvedTimeout });
-        
-        // Phase 7.4: Check prerequisites before executing attempt
-        const prereqCheck = await checkPrerequisites(page, attemptId, 2000);
-        
-        if (!prereqCheck.canProceed) {
-          // Skip attempt - prerequisites not met
+        if (!applicabilityCheck.applicable && applicabilityCheck.confidence < 0.3) {
           if (!ciMode) {
-            console.log(`    ⊘ Skipped: ${prereqCheck.reason}`);
+            console.log(`    ⊘ Not applicable: ${applicabilityCheck.reason}`);
           }
-          
           result = {
-            outcome: 'SKIPPED',
-              skipReason: prereqCheck.reason,
-              skipReasonCode: SKIP_CODES.PREREQ,
+            outcome: 'NOT_APPLICABLE',
+            skipReason: applicabilityCheck.reason,
+            skipReasonCode: SKIP_CODES.NOT_APPLICABLE,
+            discoverySignals: applicabilityCheck.discoverySignals,
             exitCode: 0,
             steps: [],
             friction: null,
             error: null
           };
-        } else {
-          // Check if this attempt is applicable to the site
-          const { AttemptEngine } = require('./attempt-engine');
-          const engine = new AttemptEngine({ attemptId, timeout: resolvedTimeout });
-          const applicabilityCheck = await engine.checkAttemptApplicability(page, attemptId);
-          
-          if (!applicabilityCheck.applicable && applicabilityCheck.confidence < 0.3) {
-            // Attempt not applicable - features not present
-            if (!ciMode) {
-              console.log(`    ⊘ Not applicable: ${applicabilityCheck.reason}`);
-            }
-            
-            result = {
-              outcome: 'NOT_APPLICABLE',
-              skipReason: applicabilityCheck.reason,
-              skipReasonCode: SKIP_CODES.NOT_APPLICABLE,
-              discoverySignals: applicabilityCheck.discoverySignals,
-              exitCode: 0,
-              steps: [],
-              friction: null,
-              error: null
-            };
-          } else if (!applicabilityCheck.applicable && applicabilityCheck.confidence >= 0.3 && applicabilityCheck.confidence < 0.6) {
-            // Features possibly present but discovery uncertain - try to execute anyway
-            // Mark as DISCOVERY_FAILED if it fails
-            result = await executeAttempt({
-              baseUrl,
-              attemptId,
-              artifactsDir: attemptArtifactsDir,
-              headful,
-              enableTrace,
-              enableScreenshots,
-              quiet: ciMode,
-              timeout: resolvedTimeout,
-              browserContext: context,
-              browserPage: page
-            });
-            
-            // If execution failed due to element not found, reclassify as DISCOVERY_FAILED
-            if (result.outcome === 'FAILURE' && result.error && /element|selector|locator/i.test(result.error)) {
-              result.outcome = 'DISCOVERY_FAILED';
-              result.skipReason = `Element discovery failed: ${result.error}`;
-              result.discoverySignals = applicabilityCheck.discoverySignals;
-            }
-          } else {
-            // Applicable or high confidence - execute normally
-            result = await executeAttempt({
-              baseUrl,
-              attemptId,
-              artifactsDir: attemptArtifactsDir,
-              headful,
-              enableTrace,
-              enableScreenshots,
-              quiet: ciMode,
-              timeout: resolvedTimeout,
-              // Phase 7.3: Pass context from pool
-              browserContext: context,
-              browserPage: page
-            });
+        } else if (!applicabilityCheck.applicable && applicabilityCheck.confidence >= 0.3 && applicabilityCheck.confidence < 0.6) {
+          result = await executeAttempt({
+            baseUrl,
+            attemptId,
+            artifactsDir: attemptArtifactsDir,
+            headful,
+            enableTrace,
+            enableScreenshots,
+            quiet: ciMode,
+            timeout: resolvedTimeout,
+            browserContext: context,
+            browserPage: page
+          });
+
+          if (result.outcome === 'FAILURE' && result.error && /element|selector|locator/i.test(result.error)) {
+            result.outcome = 'DISCOVERY_FAILED';
+            result.skipReason = `Element discovery failed: ${result.error}`;
+            result.discoverySignals = applicabilityCheck.discoverySignals;
           }
-        }
-      } finally {
-        // Phase 7.3: Cleanup context after attempt
-        await browserPool.closeContext(context);
-      }
-
-      const attemptResult = {
-        attemptId,
-        attemptName: attemptDef.name,
-        goal: attemptDef.goal,
-        riskCategory: attemptDef.riskCategory || 'UNKNOWN',
-        source: attemptDef.source || 'manual',
-        ...result
-      };
-
-      // Phase 7.1: Fail-fast logic (stop on FAILURE, not FRICTION or SKIPPED)
-      if (failFast && attemptResult.outcome === 'FAILURE') {
-        shouldStopScheduling = true;
-        if (!ciMode) {
-          console.log(`\n⚡ FAIL-FAST: stopping after failure: ${attemptDef.name}`);
+        } else {
+          result = await executeAttempt({
+            baseUrl,
+            attemptId,
+            artifactsDir: attemptArtifactsDir,
+            headful,
+            enableTrace,
+            enableScreenshots,
+            quiet: ciMode,
+            timeout: resolvedTimeout,
+            browserContext: context,
+            browserPage: page
+          });
         }
       }
-
-      return attemptResult;
-    },
-    validatedParallel,
-    { shouldStop: () => shouldStopScheduling }
-  );
-
-  // Collect results in order
-  for (const result of attemptResults_parallel) {
-    if (!result) {
-      continue;
+    } finally {
+      await browserPool.closeContext(context);
     }
 
-    // Normalize error-only or minimal results
-    if (!result.outcome) {
-      const def = getAttemptDefinition(result.attemptId) || {};
-      attemptResults.push({
-        attemptId: result.attemptId,
-        attemptName: def.name || result.attemptId || 'unknown_attempt',
-        goal: def.goal,
-        riskCategory: def.riskCategory || 'UNKNOWN',
-        source: def.source || 'manual',
-        outcome: 'FAILURE',
-        exitCode: 1,
-        steps: [],
-        friction: null,
-        error: result.error ? (result.error.message || String(result.error)) : 'Unknown attempt error'
+    const attemptResult = {
+      attemptId,
+      attemptName: attemptDef.name,
+      goal: attemptDef.goal,
+      riskCategory: attemptDef.riskCategory || 'UNKNOWN',
+      source: attemptDef.source || 'manual',
+      ...result
+    };
+
+    attemptResults.push(attemptResult);
+    journeyContext.afterAttempt(attemptResult, attemptDef);
+
+    if (journeyContext.reachedGoal()) {
+      if (!ciMode) {
+        console.log(`   ✅ Journey goal reached via ${attemptId}`);
+      }
+      break;
+    }
+
+    if (journeyContext.shouldAbandonJourney()) {
+      if (!ciMode) {
+        console.log(`   🛑 Journey abandoned (frustration ${journeyContext.frustration}/${journeyContext.frustrationThreshold})`);
+      }
+      break;
+    }
+
+    const nextAttempts = journeyContext.suggestNextAttempts({ attemptId, attemptResult });
+    for (const next of nextAttempts) {
+      if (!attemptedSet.has(next) && !attemptQueue.includes(next) && !attemptsSkipped.find(s => s.attempt === next)) {
+        attemptQueue.push(next);
+        if (!ciMode) {
+          console.log(`   🔀 Adapting journey → scheduling ${next}`);
+        }
+      }
+    }
+  }
+
+  const journeySummary = journeyContext.summarize();
+  if (!ciMode) {
+    console.log(`\n🧭 Journey summary: stage=${journeySummary.stage}, frustration=${journeySummary.frustration}/${journeySummary.frustrationThreshold}, confidence=${journeySummary.confidence}`);
+    if (journeySummary.attemptPath.length > 0) {
+      console.log('   Path:');
+      journeySummary.attemptPath.forEach((p, idx) => {
+        console.log(`    ${idx + 1}. ${p.attemptId} → ${p.outcome}${p.reason ? ` (${p.reason})` : ''}`);
       });
-    } else {
-      attemptResults.push(result);
     }
   }
 
@@ -686,6 +816,30 @@ async function executeReality(config) {
     });
   }
 
+  // Add NOT_APPLICABLE entries for attempts blocked by human intent
+  for (const blocked of attemptsBlockedByIntent) {
+    const def = getAttemptDefinition(blocked.attempt) || {};
+    attemptResults.push({
+      attemptId: blocked.attempt,
+      attemptName: def.name || blocked.attempt,
+      goal: def.goal,
+      riskCategory: def.riskCategory || 'UNKNOWN',
+      source: def.source || 'manual',
+      outcome: 'NOT_APPLICABLE',
+      skipReason: blocked.humanReason,
+      skipReasonCode: 'HUMAN_INTENT_MISMATCH',
+      exitCode: 0,
+      steps: [],
+      friction: null,
+      error: null,
+      humanIntent: {
+        blocked: true,
+        reason: blocked.reason,
+        humanReason: blocked.humanReason
+      }
+    });
+  }
+
   // Add explicit SKIPPED for user-filtered attempts that were removed before scheduling
   for (const uf of userFilteredAttempts) {
     const def = getAttemptDefinition(uf.attemptId) || {};
@@ -724,6 +878,89 @@ async function executeReality(config) {
     result.executed = isExecutedAttempt(result);
   }
 
+    // PHASE 10: SITE INTELLIGENCE ENGINE
+    // Analyze site BEFORE attempting any flows — always run
+    let siteIntelligence = null;
+    console.log(`\n🧠 Analyzing site intelligence...`);
+    const intelligenceBrowser = new GuardianBrowser();
+    try {
+      await intelligenceBrowser.launch(resolvedTimeout);
+      siteIntelligence = await analyzeSite(intelligenceBrowser.page, baseUrl);
+
+      if (!ciMode) {
+        console.log(`   Site type: ${siteIntelligence.siteType} (confidence: ${Math.round(siteIntelligence.confidence * 100)}%)`);
+        console.log(`   Detected signals: ${siteIntelligence.detectedSignals.length}`);
+
+        // Show capability summary
+        const supportedCapabilities = Object.entries(siteIntelligence.capabilities)
+          .filter(([_, cap]) => cap.supported)
+          .map(([name, _]) => name.replace('supports_', ''));
+        if (supportedCapabilities.length > 0) {
+          console.log(`   Capabilities: ${supportedCapabilities.join(', ')}`);
+        }
+      }
+    } catch (intelligenceErr) {
+      console.warn(`⚠️  Site intelligence analysis failed: ${intelligenceErr.message}`);
+      siteIntelligence = {
+        siteType: SITE_TYPES.UNKNOWN,
+        confidence: 0,
+        detectedSignals: [],
+        capabilities: {},
+        flowApplicability: {}
+      };
+    } finally {
+      await intelligenceBrowser.close().catch(() => {});
+    }
+
+    // PHASE 11: OBSERVED CAPABILITIES (VISIBLE = MUST WORK)
+    // Extract what's actually observable and filter attempts/flows accordingly
+    let observedCapabilities = extractObservedCapabilities(siteIntelligence);
+    
+    if (!ciMode) {
+      console.log(`\n🔍 Observable Capabilities:`);
+      const observed = Object.entries(observedCapabilities.capabilities)
+        .filter(([_, v]) => v === true)
+        .map(([k, _]) => k);
+      if (observed.length > 0) {
+        console.log(`   Present: ${observed.join(', ')}`);
+      }
+      const notObserved = Object.entries(observedCapabilities.capabilities)
+        .filter(([_, v]) => v === false)
+        .map(([k, _]) => k);
+      if (notObserved.length > 0) {
+        console.log(`   Not observed: ${notObserved.join(', ')}`);
+      }
+    }
+
+    // Filter attempts based on what's observable
+    const { applicable: applicableAttempts, notApplicable: notApplicableAttempts } =
+      filterAttemptsByObservedCapabilities(attemptsToRun, observedCapabilities);
+
+    if (notApplicableAttempts.length > 0) {
+      if (!ciMode) {
+        console.log(`\n⊘ ${notApplicableAttempts.length} attempt(s) NOT_APPLICABLE (capability not observed):`);
+        for (const { attemptId, reason } of notApplicableAttempts) {
+          console.log(`    • ${attemptId}: ${reason}`);
+          // Create NOT_APPLICABLE result immediately
+          const capName = notApplicableAttempts.find(a => a.attemptId === attemptId)?.capabilityRequired;
+          attemptResults.push(createNotApplicableAttemptResult(attemptId, capName || 'unknown'));
+        }
+      } else {
+        // Still add to results even in CI mode
+        for (const { attemptId, capabilityRequired } of notApplicableAttempts) {
+          attemptResults.push(createNotApplicableAttemptResult(attemptId, capabilityRequired || 'unknown'));
+        }
+      }
+    }
+
+    // Update attemptsToRun to only include applicable attempts
+    attemptsToRun = applicableAttempts;
+    
+    // CRITICAL: Update enabledRequestedAttempts to match observable capabilities
+    // This ensures coverage calculation is fair (only counts observable attempts)
+    enabledRequestedAttempts = enabledRequestedAttempts.filter(id => applicableAttempts.includes(id));
+
+
   // Phase 3: Execute intent flows (deterministic, curated)
   if (enableFlows) {
     console.log(`\n🎯 Executing intent flows...`);
@@ -744,8 +981,31 @@ async function executeReality(config) {
       if (flowsFilteredExplicitly) {
         flowsToRun = Array.isArray(filteredFlows) ? filteredFlows : [];
       } else {
-        flowsToRun = Array.isArray(filteredFlows) && filteredFlows.length ? filteredFlows : getDefaultFlowIds();
+        // PHASE 9: filteredFlows will be [] if preset explicitly sets flows=[]
+        flowsToRun = Array.isArray(filteredFlows) ? filteredFlows : [];
       }
+
+      // PHASE 11: Filter flows by observed capabilities
+      const { applicable: applicableFlows, notApplicable: notApplicableFlows } =
+        filterFlowsByObservedCapabilities(flowsToRun, observedCapabilities);
+
+      // Add NOT_APPLICABLE flow results
+      if (notApplicableFlows.length > 0) {
+        if (!ciMode) {
+          console.log(`   ⊘ ${notApplicableFlows.length} flow(s) NOT_APPLICABLE (capability not observed):`);
+          for (const { flowId, reason } of notApplicableFlows) {
+            console.log(`      • ${flowId}: ${reason}`);
+            flowResults.push(createNotApplicableFlowResult(flowId, notApplicableFlows.find(f => f.flowId === flowId)?.capabilityRequired || 'unknown'));
+          }
+        } else {
+          for (const { flowId, capabilityRequired } of notApplicableFlows) {
+            flowResults.push(createNotApplicableFlowResult(flowId, capabilityRequired || 'unknown'));
+          }
+        }
+      }
+
+      // Use only applicable flows
+      flowsToRun = applicableFlows;
       
       for (const flowId of flowsToRun) {
         const flowDef = getFlowDefinition(flowId);
@@ -753,6 +1013,34 @@ async function executeReality(config) {
           console.warn(`⚠️  Flow ${flowId} not found, skipping`);
           continue;
         }
+
+          // PHASE 10: Check flow applicability using site intelligence
+          if (siteIntelligence && !isFlowApplicable(siteIntelligence, flowId)) {
+            const applicability = siteIntelligence.flowApplicability[flowId];
+            const reason = applicability?.reason || 'Flow not applicable to this site type';
+          
+            if (!ciMode) {
+              console.log(`   ℹ️  ${flowDef.name}: NOT_APPLICABLE (${reason})`);
+            }
+          
+            const flowResult = {
+              flowId,
+              flowName: flowDef.name,
+              riskCategory: flowDef.riskCategory || 'TRUST/UX',
+              description: flowDef.description,
+              outcome: 'NOT_APPLICABLE',
+              stepsExecuted: 0,
+              stepsTotal: Array.isArray(flowDef.steps) ? flowDef.steps.length : 0,
+              failedStep: null,
+              error: null,
+              screenshots: [],
+              failureReasons: [],
+              notApplicableReason: reason,
+              source: 'flow'
+            };
+            flowResults.push(flowResult);
+            continue;
+          }
 
         const validation = validateFlowDefinition(flowDef);
         if (!validation.ok) {
@@ -848,12 +1136,19 @@ async function executeReality(config) {
     const successCount = flowResults.filter(f => (f.outcome || f.success === true ? f.outcome === 'SUCCESS' || f.success === true : false)).length;
     const frictionCount = flowResults.filter(f => f.outcome === 'FRICTION').length;
     const failureCount = flowResults.filter(f => f.outcome === 'FAILURE' || f.success === false).length;
-    console.log(`\nRun completed: ${flowResults.length} flows (${successCount} successes, ${frictionCount} frictions, ${failureCount} failures)`);
+    const notApplicableCount = flowResults.filter(f => f.outcome === 'NOT_APPLICABLE').length;
+    console.log(`\nRun completed: ${flowResults.length} flows (${successCount} successes, ${frictionCount} frictions, ${failureCount} failures, ${notApplicableCount} not applicable)`);
     const troubled = flowResults.filter(f => f.outcome === 'FRICTION' || f.outcome === 'FAILURE');
     troubled.forEach(f => {
       const reason = (f.failureReasons && f.failureReasons[0]) || (f.error) || (f.successEval && f.successEval.reasons && f.successEval.reasons[0]) || 'no reason captured';
       console.log(` - ${f.flowName}: ${reason}`);
     });
+    const notApplicable = flowResults.filter(f => f.outcome === 'NOT_APPLICABLE');
+    if (notApplicable.length > 0) {
+      notApplicable.forEach(f => {
+        console.log(` ℹ️  ${f.flowName}: not applicable to this site`);
+      });
+    }
   }
 
   // Ensure artifacts exist for skipped attempts so totals remain canonical and inspectable
@@ -910,6 +1205,7 @@ async function executeReality(config) {
   const htmlPath = reporter.saveHtmlReport(html, runDir);
 
   // Add market report paths to snapshot
+  snapshotBuilder.setJourney(journeySummary);
   snapshotBuilder.addMarketResults(
     {
       attemptResults,
@@ -1054,29 +1350,13 @@ async function executeReality(config) {
   attemptStats.nearSuccessDetails = nearSuccessDetails;
 
   // Coverage and evidence signals
-  const coverageDenominator = Math.max(attemptStats.enabledPlannedCount - skippedUserFiltered.length, 0);
-  const coverageNumerator = attemptStats.executed + skippedNotApplicable.length;
-  const coverageGaps = Math.max(coverageDenominator - coverageNumerator, 0);
-  const coverageSignal = {
-    gaps: coverageGaps,
-    executed: attemptStats.executed,
-    total: coverageDenominator,
-    details: attemptStats.skippedDetails,
-    disabled: attemptStats.disabledDetails,
-    skippedDisabledByPreset: skippedDisabledByPreset.map(a => ({ attempt: a.attemptId, reason: a.skipReason || 'Disabled by preset', code: SKIP_CODES.DISABLED_BY_PRESET })),
-    skippedNotApplicable: skippedNotApplicable.map(a => ({ attempt: a.attemptId, reason: a.skipReason })),
-    skippedMissing: skippedMissing.map(a => ({ attempt: a.attemptId, reason: a.skipReason })),
-    skippedUserFiltered: skippedUserFiltered.map(a => ({ attempt: a.attemptId, reason: a.skipReason })),
-    counts: {
-      executedCount: attemptStats.executed,
-      enabledPlannedCount: attemptStats.enabledPlannedCount,
-      disabledPlannedCount: attemptStats.disabledPlannedCount,
-      skippedDisabledByPreset: skippedDisabledByPreset.length,
-      skippedUserFiltered: skippedUserFiltered.length,
-      skippedNotApplicable: skippedNotApplicable.length,
-      skippedMissing: skippedMissing.length
-    }
-  };
+  const { coverage: coverageSignal, denominator: coverageDenominator, numerator: coverageNumerator } = calculateCoverage({
+    attemptStats,
+    skippedNotApplicable,
+    skippedMissing,
+    skippedUserFiltered,
+    skippedDisabledByPreset
+  });
 
   const evidenceMetrics = {
     completeness: coverageDenominator > 0 ? coverageNumerator / coverageDenominator : 0,
@@ -1131,7 +1411,7 @@ async function executeReality(config) {
   // First pass policy evaluation (before manifest integrity)
   policyEval = evaluatePolicy(snapshotBuilder.getSnapshot(), policyObj, policySignals);
   console.log(`\n🛡️  Evaluating policy... (${policyName})`);
-  console.log(`Policy evaluation result: exitCode=${policyEval.exitCode}, passed=${policyEval.passed}`);
+  console.log(`Policy evaluation: passed=${policyEval.passed}`);
   if (policyEval.reasons && policyEval.reasons.length > 0) {
     policyEval.reasons.slice(0, 3).forEach(r => console.log(`  • ${r}`));
   }
@@ -1173,7 +1453,9 @@ async function executeReality(config) {
   const actualDurationMs = endTime.getTime() - startTime.getTime();
 
   // Rename run directory to status placeholder for auditability
-  let exitCode = policyEval.exitCode;
+  // Note: exitCode will be determined later by final outcome authority
+  let exitCode = 0; // Placeholder, will be set by final decision
+  let releaseDecisionPath = null;
   const runResultPreManifest = 'PENDING';
   const priorRunDir = runDir;
   const finalRunDirName = makeRunDirName({ timestamp: startTime, url: baseUrl, policy: presetId, result: runResultPreManifest });
@@ -1208,7 +1490,8 @@ async function executeReality(config) {
     policyEval,
     baseline: { baselineCreated, baselineSnapshot, diffResult },
     flows: flowResults,
-    attempts: attemptResults
+    attempts: attemptResults,
+    journeySummary
   });
   const initialExplanation = buildRealityExplanation({
     finalDecision: initialDecision,
@@ -1218,7 +1501,8 @@ async function executeReality(config) {
     baseline: { baselineCreated, baselineSnapshot, diffResult },
     flows: flowResults,
     attempts: attemptResults,
-    coverage: coverageSignal
+    coverage: coverageSignal,
+    observedCapabilities
   });
 
   const decisionPath = writeDecisionArtifact({
@@ -1236,10 +1520,11 @@ async function executeReality(config) {
     resolved: resolvedConfig,
     attempts: attemptResults,
     coverage: coverageSignal,
-    explanation: initialExplanation
+    explanation: initialExplanation,
+    observedCapabilities
   });
 
-  const summaryPath = writeRunSummary(runDir, initialDecision, attemptStats, marketImpact, policyEval, initialExplanation);
+  const summaryPath = writeRunSummary(runDir, initialDecision, attemptStats, marketImpact, policyEval, initialExplanation, siteIntelligence);
 
   // Build integrity manifest over all artifacts and update evidence metrics
   try {
@@ -1280,7 +1565,7 @@ async function executeReality(config) {
     if (!ciMode) {
       console.log(`\n⚖️  Rules engine evaluation:`);
       console.log(`   Triggered rules: ${ruleEngineOutput.triggeredRuleIds.join(', ') || 'none'}`);
-      console.log(`   Final verdict: ${ruleEngineOutput.finalVerdict}`);
+      console.log(`   Rules verdict: ${ruleEngineOutput.finalVerdict}`);
       ruleEngineOutput.reasons.slice(0, 3).forEach(r => {
         console.log(`   • [${r.ruleId}] ${r.message}`);
       });
@@ -1291,14 +1576,57 @@ async function executeReality(config) {
     ruleEngineOutput = null;
   }
 
-  const finalDecision = computeFinalVerdict({
-    marketImpact,
-    policyEval,
-    baseline: { baselineCreated, baselineSnapshot, diffResult },
-    flows: flowResults,
-    attempts: attemptResults,
-    ruleEngineOutput
-  });
+  // FINAL OUTCOME AUTHORITY: Merge rules verdict + policy evaluation
+  // This is the single source of truth for finalVerdict and finalExitCode
+  let finalDecision;
+  if (ruleEngineOutput) {
+    // Use new merge logic
+    const mergedOutcome = computeFinalOutcome({
+      rulesVerdict: ruleEngineOutput.finalVerdict,
+      rulesExitCode: ruleEngineOutput.exitCode,
+      rulesReasons: ruleEngineOutput.reasons,
+      rulesTriggeredIds: ruleEngineOutput.triggeredRuleIds,
+      policySignals: ruleEngineOutput.policySignals,
+      policyEval,
+      coverage: coverageSignal,
+      policy: policyObj  // Pass policy object so we can respect failOnGap setting
+    });
+
+    if (!ciMode) {
+      console.log(`\n🎯 Final outcome authority:`);
+      console.log(`   Merged verdict: ${mergedOutcome.finalVerdict} (exit ${mergedOutcome.finalExitCode})`);
+      console.log(`   Source: ${mergedOutcome.source}`);
+      if (mergedOutcome.mergeInfo) {
+        console.log(`   Decision: ${mergedOutcome.mergeInfo.decision}`);
+      }
+    }
+
+    finalDecision = {
+      finalVerdict: mergedOutcome.finalVerdict,
+      exitCode: mergedOutcome.finalExitCode,
+      reasons: mergedOutcome.reasons,
+      triggeredRuleIds: mergedOutcome.triggeredRuleIds,
+      policySignals: mergedOutcome.policySignals || ruleEngineOutput.policySignals,
+      mergeInfo: mergedOutcome.mergeInfo
+    };
+  } else {
+    // Fallback to legacy logic if rules engine failed
+    finalDecision = computeFinalVerdict({
+      marketImpact,
+      policyEval,
+      baseline: { baselineCreated, baselineSnapshot, diffResult },
+      flows: flowResults,
+      attempts: attemptResults,
+      journeySummary,
+      ruleEngineOutput: null
+    });
+  }
+
+  // Extract actionable hints for non-READY outcomes
+  const actionHints = finalDecision.finalVerdict !== 'READY' 
+    ? deriveActionHints(attemptResults)
+    : [];
+
   const finalExplanation = buildRealityExplanation({
     finalDecision,
     attemptStats,
@@ -1307,7 +1635,8 @@ async function executeReality(config) {
     baseline: { baselineCreated, baselineSnapshot, diffResult },
     flows: flowResults,
     attempts: attemptResults,
-    coverage: coverageSignal
+    coverage: coverageSignal,
+    observedCapabilities
   });
   exitCode = finalDecision.exitCode;
 
@@ -1328,9 +1657,12 @@ async function executeReality(config) {
     attempts: attemptResults,
     coverage: coverageSignal,
     explanation: finalExplanation,
-    ruleEngineOutput
+    ruleEngineOutput,
+    siteIntelligence,
+    actionHints,
+    observedCapabilities
   });
-  const summaryPathFinal = writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, policyEval, finalExplanation);
+  const summaryPathFinal = writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, policyEval, finalExplanation, siteIntelligence, actionHints);
 
   const runResult = finalDecision.finalVerdict;
 
@@ -1339,6 +1671,24 @@ async function executeReality(config) {
     const snap = snapshotBuilder.getSnapshot();
     snap.policyEvaluation = policyEval;
     snap.policyName = policyName;
+      // PHASE 10: Add site intelligence to snapshot
+      if (siteIntelligence) {
+        snap.siteIntelligence = {
+          siteType: siteIntelligence.siteType,
+          confidence: siteIntelligence.confidence,
+          timestamp: siteIntelligence.timestamp,
+          capabilities: Object.keys(siteIntelligence.capabilities || {}).reduce((acc, key) => {
+            const cap = siteIntelligence.capabilities[key];
+            acc[key] = {
+              supported: cap.supported,
+              confidence: cap.confidence
+            };
+            return acc;
+          }, {}),
+          flowApplicability: siteIntelligence.flowApplicability,
+          signalCount: siteIntelligence.detectedSignals?.length || 0
+        };
+      }
     snap.meta.policyHash = policyHash;
     snap.meta.preset = config.preset || presetId;
     snap.meta.evidenceMetrics = evidenceMetrics;
@@ -1357,6 +1707,74 @@ async function executeReality(config) {
     };
     snap.evidenceMetrics = { ...evidenceMetrics, coverage: coverageSignal };
     snap.coverage = coverageSignal;
+    
+    // HONESTY CONTRACT: Build evidence-based honesty data
+    let honestyContract = buildHonestyContract({
+      attemptResults: attemptResults,
+      flowResults: flowResults,
+      requestedAttempts: enabledRequestedAttempts,
+      enabledAttempts: enabledRequestedAttempts,
+      totalPossibleAttempts: attemptStats.total,
+      crawlData: snap.crawl || {},
+      coverageSignal: coverageSignal,
+      triggeredRuleIds: finalDecision.triggeredRuleIds || [] // Pass rules engine signals (e.g., all_goals_reached)
+    });
+    
+    // Validate honesty contract
+    const honestyValidation = validateHonestyContract(honestyContract);
+    if (!honestyValidation.valid) {
+      console.error(`\n⚠️  HONESTY VIOLATION: ${honestyValidation.reason}`);
+      // FAIL-SAFE: Force DO_NOT_LAUNCH if honesty data is invalid
+      snap.verdict = {
+        verdict: 'DO_NOT_LAUNCH',
+        confidence: { score: 0, basis: 'honesty_violation' },
+        why: `Cannot make safe claims - ${honestyValidation.reason}`,
+        keyFindings: ['Honesty data validation failed'],
+        evidence: {},
+        limits: ['CRITICAL: Honesty contract invalid'],
+        honestyViolation: true
+      };
+    } else {
+      // Enforce honesty in verdict
+      const rawVerdict = normalizeCanonicalVerdict(finalDecision.finalVerdict);
+      const honestVerdict = enforceHonestyInVerdict(rawVerdict, honestyContract);
+      
+      if (honestVerdict.honestyEnforced) {
+        console.log(`\n🔒 HONESTY ENFORCEMENT: ${honestVerdict.reason}`);
+        console.log(`   Original: ${honestVerdict.originalVerdict} → Adjusted: ${honestVerdict.verdict}`);
+        
+        // CRITICAL: Update exitCode to match the adjusted verdict
+        // If honesty downgraded READY → FRICTION, exitCode must also change from 0 → 1
+        const { mapExitCodeFromCanonical } = require('./verdicts');
+        const adjustedExitCode = mapExitCodeFromCanonical(honestVerdict.verdict);
+        exitCode = adjustedExitCode;
+        finalDecision.exitCode = adjustedExitCode;
+      }
+      
+      // Build verdict object with honesty contract
+      snap.verdict = {
+        verdict: honestVerdict.verdict,
+        confidence: {
+          score: honestVerdict.confidence,
+          basis: honestyContract.confidenceBasis.summary
+        },
+        why: honestyContract.confidenceBasis.details.join('; '),
+        keyFindings: [
+          ...honestyContract.confidenceBasis.details.slice(0, 3),
+          `Coverage: ${honestyContract.coverageStats.percent}%`
+        ],
+        evidence: {
+          executedAttempts: honestyContract.coverageStats.executed,
+          totalAttempts: honestyContract.coverageStats.total,
+          coveragePercent: honestyContract.coverageStats.percent,
+          testedScope: honestyContract.testedScope.slice(0, 10),
+          untestedScope: honestyContract.untestedScope.slice(0, 10)
+        },
+        limits: honestyContract.limits,
+        honestyContract: honestyContract,
+        honestyEnforced: honestVerdict.honestyEnforced
+      };
+    }
     await saveSnapshot(snap, snapshotPathFinal);
     // Minimal attestation: sha256(policyHash + snapshotHash + manifestHash + runId)
     const snapshotHash = hashFile(snapshotPathFinal);
@@ -1365,6 +1783,64 @@ async function executeReality(config) {
     const attestationHash = crypto.createHash('sha256').update(`${policyHash}|${snapshotHash}|${manifestHash || 'none'}|${runId}`).digest('hex');
     snap.meta.attestation = { hash: attestationHash, policyHash, snapshotHash, manifestHash, runId };
     await saveSnapshot(snap, snapshotPathFinal);
+
+    // Pre-Launch Gate and release decision artifact
+    const baselinePresent = baselineExists(baseUrl, storageDir);
+    let releaseDecision = null;
+    let releaseDecisionPath = null;
+
+    const gate = evaluatePrelaunchGate({
+      prelaunch,
+      verdict: snap.verdict?.verdict || finalDecision.finalVerdict,
+      exitCode,
+      allowFrictionOverride: prelaunchAllowFriction,
+      honestyContract,
+      coverage: coverageSignal,
+      baselinePresent,
+      integrity: evidenceMetrics.integrity || 0,
+      evidence: {
+        executedAttempts: attemptStats.executed || 0,
+        totalPlanned: attemptStats.total || attemptStats.enabledPlannedCount || 0
+      }
+    });
+
+    releaseDecision = gate.releaseDecision;
+    exitCode = gate.exitCode;
+    finalDecision.exitCode = exitCode;
+    releaseDecisionPath = writeReleaseDecisionArtifact(runDir, releaseDecision);
+
+    // Rewrite decision + summary to reflect gated exit code
+    writeDecisionArtifact({
+      runDir,
+      runId,
+      baseUrl,
+      policyName,
+      preset: config.preset || policyName,
+      finalDecision,
+      attemptStats,
+      marketImpact,
+      policyEval,
+      baseline: { baselineCreated, baselineSnapshot, diffResult },
+      flows: flowResults,
+      resolved: resolvedConfig,
+      attestation: snap.meta?.attestation,
+      attempts: attemptResults,
+      coverage: coverageSignal,
+      explanation: finalExplanation,
+      ruleEngineOutput,
+      siteIntelligence,
+      actionHints,
+      honestyContract,
+      observedCapabilities
+    });
+    writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, policyEval, finalExplanation, siteIntelligence, actionHints);
+
+    if (prelaunch) {
+      const blockStatus = releaseDecision.blocking ? 'BLOCKING' : 'ALLOW';
+      console.log(`\n🚦 Pre-Launch Gate: ${blockStatus}`);
+      releaseDecision.reasons.forEach(r => console.log(`   • ${r.code}: ${r.message}`));
+      console.log(`   Artifact: ${releaseDecisionPath}`);
+    }
 
     // Rewrite decision to include attestation and auditor-grade summary
     writeDecisionArtifact({
@@ -1392,7 +1868,10 @@ async function executeReality(config) {
       },
       attempts: attemptResults,
       coverage: coverageSignal,
-      explanation: finalExplanation
+      explanation: finalExplanation,
+      siteIntelligence,
+      honestyContract: snap.verdict?.honestyContract,
+      observedCapabilities
     });
   } catch (_) {}
 
@@ -1455,6 +1934,15 @@ async function executeReality(config) {
     console.warn(`⚠️  Failed to update latest pointers: ${latestErr.message}`);
   }
 
+  // Mark first run complete if this was the first run
+  if (firstRunMode) {
+    try {
+      markFirstRunComplete();
+    } catch (err) {
+      console.warn(`⚠️  Failed to mark first run complete: ${err.message}`);
+    }
+  }
+
   return {
     exitCode,
     report,
@@ -1471,7 +1959,9 @@ async function executeReality(config) {
     resolved: resolvedConfig,
     finalDecision,
     explanation: finalExplanation,
-    coverage: coverageSignal
+    coverage: coverageSignal,
+    actionHints,
+    releaseDecisionPath
   };
 }
 
@@ -1564,54 +2054,39 @@ async function runRealityCLI(config) {
       });
       const sections = explanation.sections || {};
       const verdictSection = sections['Final Verdict'] || {};
-      console.log('\n' + '━'.repeat(70));
-      console.log('🛡️  Guardian Reality Summary');
-      console.log('━'.repeat(70) + '\n');
-      console.log(`Target: ${meta.url || 'unknown'}`);
-      console.log(`Run ID: ${meta.runId || 'unknown'}\n`);
-      console.log(`Verdict: ${meta.result || finalDecision.finalVerdict || 'unknown'}`);
-      console.log(`Exit Code: ${result.exitCode}`);
-      if (verdictSection.explanation) console.log(`Reason: ${verdictSection.explanation}`);
-      if (verdictSection.whyNot && verdictSection.whyNot.length > 0) {
-        console.log(`Why not alternatives: ${verdictSection.whyNot.join(' ')}`);
-      }
-      const planned = coverage.total ?? (resolved.coverage?.total);
-      const executed = counts.executedCount ?? (resolved.coverage?.executedCount) ?? coverage.executed;
-      console.log(`Executed / Planned: ${executed} / ${planned}`);
-      const completeness = evidence.completeness ?? resolved.evidenceMetrics?.completeness;
-      const integrity = evidence.integrity ?? resolved.evidenceMetrics?.integrity;
-      console.log(`Coverage Completeness: ${typeof completeness === 'number' ? completeness.toFixed(4) : completeness}`);
-      console.log(`Evidence Integrity: ${typeof integrity === 'number' ? integrity.toFixed(4) : integrity}`);
-      if (meta.attestation?.hash) console.log(`Attestation: ${meta.attestation.hash}`);
-      const executedAttempts = (snap.attempts || []).filter(a => a.executed).map(a => a.attemptId);
-      console.log('\nAudit Summary:');
-      console.log(`  Tested (${executedAttempts.length}): ${executedAttempts.join(', ') || 'none'}`);
-      const skippedDisabled = (coverage.skippedDisabledByPreset || []).map(s => s.attempt);
-      const skippedUserFiltered = (coverage.skippedUserFiltered || []).map(s => s.attempt);
-      const skippedNotApplicable = (coverage.skippedNotApplicable || []).map(s => s.attempt);
-      const skippedMissing = (coverage.skippedMissing || []).map(s => s.attempt);
-      console.log(`  Not Tested — DisabledByPreset (${skippedDisabled.length}): ${skippedDisabled.join(', ') || 'none'}`);
-      console.log(`  Not Tested — UserFiltered (${skippedUserFiltered.length}): ${skippedUserFiltered.join(', ') || 'none'}`);
-      console.log(`  Not Tested — NotApplicable (${skippedNotApplicable.length}): ${skippedNotApplicable.join(', ') || 'none'}`);
-      console.log(`  Not Tested — Missing (${skippedMissing.length}): ${skippedMissing.join(', ') || 'none'}`);
-      if (sections['What Guardian Observed']) {
-        console.log('\nWhat Guardian Observed:');
-        sections['What Guardian Observed'].details.forEach(d => console.log(`  • ${d}`));
-      }
-      if (sections['What Guardian Could Not Confirm']) {
-        console.log('\nWhat Guardian Could Not Confirm:');
-        sections['What Guardian Could Not Confirm'].details.forEach(d => console.log(`  • ${d}`));
-      }
-      if (sections['Evidence Summary']) {
-        console.log('\nEvidence Summary:');
-        sections['Evidence Summary'].details.forEach(d => console.log(`  • ${d}`));
-      }
-      if (sections['Limits of This Run']) {
-        console.log('\nLimits of This Run:');
-        sections['Limits of This Run'].details.forEach(d => console.log(`  • ${d}`));
-      }
+      const verdictValue = normalizeCanonicalVerdict(meta.result || finalDecision.finalVerdict);
+      
+      // DX BOOST Stage 4: Unified Output Readability
+      printUnifiedOutput({
+        meta,
+        coverage,
+        counts,
+        verdict: snap.verdict || verdictSection, // Use snap.verdict first (has honestyContract)
+        attemptResults: result.attemptResults || snap.attempts || [],
+        flowResults: result.flowResults || snap.flows || [],
+        exitCode: result.exitCode,
+        runDir: result.runDir || (configReport?.effective?.output?.dir ? path.join(configReport.effective.output.dir, meta.runId || '') : `artifacts/${meta.runId || ''}`)
+      }, config, process.argv.slice(2));
+      
+       // DX BOOST Stage 2: Verdict Clarity
+       // Print human-readable verdict summary with top reasons and observation clarity
+       const topReasons = extractTopReasons(finalDecision, result.attemptResults || [], result.flowResults || []);
+       const observationClarity = buildObservationClarity(coverage, result.attemptResults || []);
+       printVerdictClarity(verdictValue, {
+         reasons: topReasons,
+         explanation: getVerdictExplanation(verdictValue),
+         observed: observationClarity.observed,
+         notObserved: observationClarity.notObserved,
+         config,
+         args: process.argv.slice(2)
+       });
+       
+       // Display Action Hints for non-READY verdicts
+       if (finalDecision.finalVerdict !== 'READY' && result.actionHints && result.actionHints.length > 0) {
+         console.log('\n' + formatHintsForCLI(result.actionHints, 3));
+       }
+     
       const reportBase = result.runDir || (configReport?.effective?.output?.dir ? path.join(configReport.effective.output.dir, meta.runId || '') : `artifacts/${meta.runId || ''}`);
-      console.log(`\n📁 Full report: ${reportBase}\n`);
       console.log('━'.repeat(70));
     }
 
@@ -1702,7 +2177,7 @@ function computeFlowExitCode(flowResults) {
   return 0;
 }
 
-function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attempts, ruleEngineOutput = null }) {
+function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attempts, journeySummary = null, ruleEngineOutput = null }) {
   // PHASE 3: Use rules engine for deterministic verdict computation
   // If rules engine already produced a decision, use it as the authoritative verdict
   if (ruleEngineOutput && typeof ruleEngineOutput === 'object') {
@@ -1719,21 +2194,55 @@ function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attemp
   // This maintains backward compatibility with existing flow
   const reasons = [];
 
+  const journeyVerdict = journeySummary
+    ? (journeySummary.completedGoal ? 'READY' : journeySummary.abandoned ? 'DO_NOT_LAUNCH' : 'FRICTION')
+    : null;
+
+  if (journeySummary) {
+    reasons.push({
+      code: 'JOURNEY',
+      message: journeySummary.completedGoal
+        ? 'Journey completed intended human goal.'
+        : journeySummary.abandoned
+          ? 'Journey abandoned due to frustration/time.'
+          : 'Journey incomplete; human encountered blockers.'
+    });
+    if (Array.isArray(journeySummary.attemptPath) && journeySummary.attemptPath.length > 0) {
+      const path = journeySummary.attemptPath.map(p => `${p.attemptId}:${p.outcome}`).join(' → ');
+      reasons.push({ code: 'JOURNEY_PATH', message: `Path: ${path}` });
+    }
+  }
+
   const executedAttempts = Array.isArray(attempts)
     ? attempts.filter(a => a.executed)
     : [];
+  
+  // PHASE 11: Exclude NOT_APPLICABLE from failure/friction counts
   const successfulAttempts = executedAttempts.filter(a => a.outcome === 'SUCCESS');
-  const failedAttempts = executedAttempts.filter(a => a.outcome === 'FAILURE');
-  const frictionAttempts = executedAttempts.filter(a => a.outcome === 'FRICTION');
+  const failedAttempts = executedAttempts.filter(a => a.outcome === 'FAILURE' && a.outcome !== 'NOT_APPLICABLE');
+  const frictionAttempts = executedAttempts.filter(a => a.outcome === 'FRICTION' && a.outcome !== 'NOT_APPLICABLE');
+  const notApplicableAttempts = Array.isArray(attempts) ? attempts.filter(a => a.outcome === 'NOT_APPLICABLE') : [];
 
   const flowList = Array.isArray(flows) ? flows : [];
-  const failedFlows = flowList.filter(f => f.outcome === 'FAILURE' || f.success === false);
-  const frictionFlows = flowList.filter(f => f.outcome === 'FRICTION');
+  // PHASE 9: Don't count NOT_APPLICABLE flows as failures
+  const failedFlows = flowList.filter(f => (f.outcome === 'FAILURE' || f.success === false) && f.outcome !== 'NOT_APPLICABLE');
+  const frictionFlows = flowList.filter(f => f.outcome === 'FRICTION' && f.outcome !== 'NOT_APPLICABLE');
+  const notApplicableFlows = flowList.filter(f => f.outcome === 'NOT_APPLICABLE');
   const observedFlows = successfulAttempts.map(a => a.attemptId || a.id || 'unknown');
 
   // Observation summary always first
   if (executedAttempts.length > 0) {
     reasons.push({ code: 'OBSERVED', message: `Observed ${executedAttempts.length} attempted flow(s); successful=${successfulAttempts.length}, failed=${failedAttempts.length}, friction=${frictionAttempts.length}.` });
+  }
+
+  // PHASE 11: Report not-applicable attempts separately (not as failures)
+  if (notApplicableAttempts.length > 0) {
+    reasons.push({ code: 'ATTEMPTS_NOT_APPLICABLE', message: `${notApplicableAttempts.length} attempt(s) not applicable to this site (capability not observed): ${notApplicableAttempts.map(a => a.attemptId || a.id || 'unknown').join(', ')}.` });
+  }
+
+  // PHASE 9: Report not-applicable flows separately (not as failures)
+  if (notApplicableFlows.length > 0) {
+    reasons.push({ code: 'FLOWS_NOT_APPLICABLE', message: `${notApplicableFlows.length} flow(s) not applicable to this site: ${notApplicableFlows.map(f => f.flowId || f.flowName || 'unknown').join(', ')}.` });
   }
 
   // Baseline regressions
@@ -1743,10 +2252,15 @@ function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attemp
     reasons.push({ code: 'BASELINE_REGRESSION', message: `Baseline regressions detected for: ${regressionAttempts.join(', ')}.` });
   }
 
-  // Policy evaluation evidence
+  // PHASE 9: Policy evaluation - incorporate into final verdict logic
+  // Don't treat policy warning (exit 2) as a separate verdict/exit code
   if (policyEval) {
-    if (!policyEval.passed && policyEval.summary) {
-      reasons.push({ code: 'POLICY', message: policyEval.summary });
+    if (!policyEval.passed && policyEval.exitCode === 1) {
+      // Policy hard failure (exit 1)
+      reasons.push({ code: 'POLICY_FAILURE', message: policyEval.summary || 'Policy conditions not satisfied; critical issues found.' });
+    } else if (!policyEval.passed && policyEval.exitCode === 2) {
+      // Policy warning (exit 2) - treat as informational, not verdict-changing
+      reasons.push({ code: 'POLICY_WARNING', message: policyEval.summary || 'Policy evaluation produced warnings.' });
     } else if (!policyEval.passed) {
       reasons.push({ code: 'POLICY', message: 'Policy conditions not satisfied; evidence insufficient.' });
     }
@@ -1777,10 +2291,23 @@ function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attemp
   let finalVerdict;
   let exitCode;
 
-  if (executedAttempts.length === 0 && flowList.length === 0) {
+  // PHASE 9: Base exit code on actual failures, not policy warnings
+  const hasCriticalFailures = failedAttempts.length > 0 || failedFlows.length > 0;
+  const hasPolicyHardFailure = policyEval && !policyEval.passed && policyEval.exitCode === 1;
+
+  // PHASE 11: Count only applicable attempts and flows for verdict
+  const applicableAttempts = Array.isArray(attempts) 
+    ? attempts.filter(a => a.outcome !== 'NOT_APPLICABLE')
+    : [];
+  const applicableFlows = Array.isArray(flows)
+    ? flows.filter(f => f.outcome !== 'NOT_APPLICABLE')
+    : [];
+
+  if (applicableAttempts.length === 0 && applicableFlows.length === 0) {
     internalVerdict = 'INSUFFICIENT_DATA';
-    reasons.unshift({ code: 'NO_OBSERVATIONS', message: 'No meaningful flows executed; only static or configuration checks available.' });
-  } else if (failedAttempts.length === 0 && failedFlows.length === 0 && frictionAttempts.length === 0 && frictionFlows.length === 0 && (!policyEval || policyEval.passed)) {
+    reasons.unshift({ code: 'NO_OBSERVATIONS', message: 'No applicable flows found to execute; only static or configuration checks available.' });
+  } else if (!hasCriticalFailures && !hasPolicyHardFailure && frictionAttempts.length === 0 && frictionFlows.length === 0 && (!policyEval || policyEval.passed || policyEval.exitCode === 2)) {
+    // PHASE 9: Policy warnings (exit 2) don't block OBSERVED verdict
     internalVerdict = 'OBSERVED';
     if (observedFlows.length > 0) {
       reasons.push({ code: 'OBSERVED_FLOWS', message: `Observed end-to-end flows: ${observedFlows.join(', ')}.` });
@@ -1795,6 +2322,16 @@ function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attemp
     }
   }
 
+  if (journeyVerdict) {
+    const canonicalFromJourney = journeyVerdict;
+    const canonicalFromInternal = toCanonicalVerdict(internalVerdict);
+    const rank = { READY: 0, FRICTION: 1, DO_NOT_LAUNCH: 2 };
+    const chosenCanonical = rank[canonicalFromJourney] > rank[canonicalFromInternal]
+      ? canonicalFromJourney
+      : canonicalFromInternal;
+    internalVerdict = toInternalVerdict(chosenCanonical);
+  }
+
   // Ensure deterministic ordering: sort by code then message
   const orderedReasons = reasons
     .filter(r => r && r.code && r.message)
@@ -1802,6 +2339,7 @@ function computeFinalVerdict({ marketImpact, policyEval, baseline, flows, attemp
 
   finalVerdict = toCanonicalVerdict(internalVerdict);
   exitCode = mapExitCodeFromCanonical(finalVerdict);
+  
   return { finalVerdict, exitCode, reasons: orderedReasons };
 }
 
@@ -1850,7 +2388,7 @@ function writeIntegrityManifest(runDir) {
   };
 }
 
-function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, marketImpact = {}, policyEval = {}, baseline = {}, flows = [], attempts = [], coverage = {} }) {
+function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, marketImpact = {}, policyEval = {}, baseline = {}, flows = [], attempts = [], coverage = {}, observedCapabilities = null }) {
   const verdict = finalDecision.finalVerdict || 'UNKNOWN';
   const exitCode = typeof finalDecision.exitCode === 'number' ? finalDecision.exitCode : 1;
 
@@ -1908,11 +2446,43 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
     const regressionAttempts = Object.keys(diff.regressions).sort();
     couldNotConfirm.push(`Baseline regressions: ${regressionAttempts.join(', ')}.`);
   }
-  if (coverage && typeof coverage.gaps === 'number' && coverage.gaps > 0) {
-    couldNotConfirm.push(`Coverage gaps: ${coverage.gaps} planned attempt(s) not observed.`);
+  // PHASE 11: Only count coverage gaps for APPLICABLE attempts
+  const applicableGaps = coverage && typeof coverage.gaps === 'number' && coverage.gaps > 0
+    && (attemptStats.total !== attemptStats.skippedNotApplicable);
+  if (applicableGaps) {
+    couldNotConfirm.push(`Coverage gaps: ${coverage.gaps} applicable attempt(s) not executed.`);
   }
   if (couldNotConfirm.length === 0) {
-    couldNotConfirm.push('No outstanding gaps; all planned evidence confirmed for observed scope.');
+    couldNotConfirm.push('No outstanding gaps; all observed and applicable items confirmed.');
+  }
+
+  // PHASE 11: "What Was Not Observed" section - clarity for non-observed capabilities
+  const notObserved = [];
+  if (observedCapabilities && observedCapabilities.capabilities) {
+    const notObservedCaps = Object.entries(observedCapabilities.capabilities)
+      .filter(([cap, observed]) => observed === false && cap !== 'internal_admin')
+      .map(([cap, _]) => cap)
+      .sort();
+    if (notObservedCaps.length > 0) {
+      notObserved.push(`Not observed in UI: ${notObservedCaps.join(', ')}.`);
+      notObserved.push('These capabilities were not visible in the user interface and were NOT tested.');
+      notObserved.push('Guardian does NOT penalize sites for features that are not present.');
+    }
+    
+    // Separate section for internal/admin surfaces (if detected)
+    const internalAdminDetected = observedCapabilities.capabilities.internal_admin === true;
+    if (internalAdminDetected) {
+      notObserved.push('');
+      notObserved.push('Internal Surface Detected:');
+      notObserved.push('Admin/staff areas found (e.g., /admin, /dashboard) with internal labels.');
+      notObserved.push('These internal surfaces are NOT tested and do NOT affect public readiness.');
+    }
+  }
+  if (attemptStats.skippedNotApplicable && attemptStats.skippedNotApplicable > 0) {
+    notObserved.push(`${attemptStats.skippedNotApplicable} attempt(s) marked NOT_APPLICABLE (capability not observed).`);
+  }
+  if (notObserved.length === 0) {
+    notObserved.push('All expected capabilities were observed in the UI.');
   }
 
   const evidenceSummary = [];
@@ -1967,7 +2537,8 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
     if (failures.length > 0) partialDrivers.push(`${failures.length} failed attempt(s)`);
     if (frictions.length > 0) partialDrivers.push(`${frictions.length} friction attempt(s)`);
     if (flowFailures.length > 0) partialDrivers.push(`${flowFailures.length} failed flow(s)`);
-    if (policyEval && policyEval.passed === false) partialDrivers.push('policy not satisfied');
+    if (policyEval && policyEval.passed === false && policyEval.exitCode === 1) partialDrivers.push('policy hard failure');
+    if (policyEval && policyEval.passed === false && policyEval.exitCode === 2) partialDrivers.push('policy warnings');
     whyThisVerdict = partialDrivers.length > 0
       ? `Evidence is mixed: ${partialDrivers.join('; ')}.`
       : 'Evidence incomplete or mixed; not all planned signals confirmed.';
@@ -1977,9 +2548,37 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
     whyThisVerdict = 'No meaningful user flows were executed; evidence is insufficient to claim readiness.';
     whyNotList.push('Not OBSERVED because no successful flows were confirmed.');
     whyNotList.push('Not PARTIAL because there was no executable evidence to partially support readiness.');
+  } else if (verdict === 'READY' || verdict === 'FRICTION' || verdict === 'DO_NOT_LAUNCH') {
+    // PHASE 11: Use actual reasons from decision when available
+    const reasonsList = finalDecision.reasons || [];
+    if (reasonsList.length > 0) {
+      // Extract top reasons (limit to 3 for summary clarity)
+      const topReasons = reasonsList.slice(0, 3).map(r => {
+        if (typeof r === 'string') return r;
+        if (r.message) return r.message;
+        if (r.reason) return r.reason;
+        return String(r);
+      });
+      whyThisVerdict = topReasons.join('; ');
+    } else {
+      // Fallback: build from evidence
+      const evidenceDrivers = [];
+      if (verdict === 'DO_NOT_LAUNCH') {
+        if (flowFailures.length > 0) evidenceDrivers.push(`${flowFailures.length} flow failure(s)`);
+        if (failures.length > 0) evidenceDrivers.push(`${failures.length} attempt failure(s)`);
+      } else if (verdict === 'FRICTION') {
+        if (frictions.length > 0) evidenceDrivers.push(`${frictions.length} friction point(s)`);
+        if (flowFrictions.length > 0) evidenceDrivers.push(`${flowFrictions.length} flow friction(s)`);
+      }
+      whyThisVerdict = evidenceDrivers.length > 0
+        ? evidenceDrivers.join('; ')
+        : `Guardian assessed the evidence and reached verdict: ${verdict}.`;
+    }
+    whyNotList.push(`Other verdicts not applicable based on observed evidence and policy evaluation.`);
   } else {
-    whyThisVerdict = 'Verdict unavailable; using conservative interpretation of observed evidence.';
-    whyNotList.push('Alternative verdicts not evaluated due to unknown state.');
+    // PHASE 9: Should never reach here if verdict exists
+    whyThisVerdict = `Guardian reached verdict: ${verdict || 'UNKNOWN'} based on observed evidence.`;
+    whyNotList.push('Alternative verdicts not evaluated due to incomplete state.');
   }
 
   const finalVerdictSection = {
@@ -1987,7 +2586,12 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
     exitCode,
     explanation: whyThisVerdict,
     whyNot: whyNotList,
-    reasons: (finalDecision.reasons || []).map(r => `${r.code}: ${r.message}`)
+    reasons: (finalDecision.reasons || []).map(r => {
+      if (typeof r === 'string') return r;
+      if (r.ruleId && r.message) return `${r.ruleId}: ${r.message}`;
+      if (r.code && r.message) return `${r.code}: ${r.message}`;
+      return r.message || r.reason || String(r);
+    })
   };
 
   const sections = {
@@ -1999,6 +2603,10 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
     'What Guardian Could Not Confirm': {
       summary: couldNotConfirm[0],
       details: couldNotConfirm
+    },
+    'What Was Not Observed': {
+      summary: notObserved[0],
+      details: notObserved
     },
     'Evidence Summary': {
       summary: evidenceSummary[0],
@@ -2013,8 +2621,8 @@ function buildRealityExplanation({ finalDecision = {}, attemptStats = {}, market
   return { verdict: finalVerdictSection, sections };
 }
 
-function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, resolved, attestation, audit, attempts = [], coverage = {}, explanation, ruleEngineOutput = null }) {
-  const structuredExplanation = explanation || buildRealityExplanation({ finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, attempts, coverage });
+function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, resolved, attestation, audit, attempts = [], coverage = {}, explanation, ruleEngineOutput = null, siteIntelligence = null, actionHints = [], honestyContract = null, observedCapabilities = null }) {
+  const structuredExplanation = explanation || buildRealityExplanation({ finalDecision, attemptStats, marketImpact, policyEval, baseline, flows, attempts, coverage, observedCapabilities });
   const safePolicyEval = policyEval || { passed: true, exitCode: 0, summary: 'Policy evaluation not run.' };
   const diff = baseline?.diffResult || baseline?.diff || {};
   const auditSummary = audit ? {
@@ -2039,6 +2647,7 @@ function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, fin
     finalVerdict: finalDecision.finalVerdict,
     exitCode: finalDecision.exitCode,
     reasons: finalDecision.reasons,
+    actionHints: actionHints || [],
     resolved: resolved || {},
     attestation: attestation || {},
     counts: {
@@ -2058,6 +2667,10 @@ function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, fin
         frictions: Array.isArray(flows) ? flows.filter(f => f.outcome === 'FRICTION').length : 0
       }
     },
+    outcomes: {
+      flows: Array.isArray(flows) ? flows : [],
+      attempts: Array.isArray(attempts) ? attempts : []
+    },
     coverage: {
       total: coverage.total || attemptStats.enabledPlannedCount || attemptStats.total || 0,
       executed: coverage.executed || attemptStats.executed || 0,
@@ -2068,9 +2681,35 @@ function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, fin
     auditSummary,
     sections: structuredExplanation.sections,
     explanation: structuredExplanation.verdict,
+    ...(siteIntelligence && { siteIntelligence }),
+    // PHASE 11: Observable capabilities tracking
+    observedCapabilities: observedCapabilities ? observedCapabilities.capabilities : null,
+    applicability: {
+      relevantTotal: coverage.total || attemptStats.enabledPlannedCount || 0,
+      executed: coverage.executed || attemptStats.executed || 0,
+      notObserved: attemptStats.skippedNotApplicable || 0,
+      skippedNeutral: (attemptStats.skippedUserFiltered || 0) + (attemptStats.disabled || 0),
+      coveragePercent: coverage.percent || 0
+    },
     // PHASE 3: Include rules engine evaluation
     policySignals: ruleEngineOutput?.policySignals || finalDecision?.policySignals || null,
-    triggeredRules: ruleEngineOutput?.triggeredRuleIds || finalDecision?.triggeredRuleIds || []
+    triggeredRules: ruleEngineOutput?.triggeredRuleIds || finalDecision?.triggeredRuleIds || [],
+    // HONESTY CONTRACT: Include tested/untested scope and explicit limits
+    honestyContract: honestyContract ? {
+      testedScope: honestyContract.testedScope || [],
+      untestedScope: honestyContract.untestedScope || [],
+      limits: honestyContract.limits || [],
+      nonClaims: honestyContract.nonClaims || [],
+      coverageStats: honestyContract.coverageStats || {},
+      confidenceBasis: honestyContract.confidenceBasis || {},
+      disclaimer: 'Guardian can only report on what it tested. Untested areas may contain issues.'
+    } : {
+      testedScope: [],
+      untestedScope: [],
+      limits: ['Honesty data not available'],
+      coveragePercent: 0,
+      disclaimer: 'HONESTY VIOLATION: Missing honesty contract - claims cannot be verified'
+    }
   };
 
   const decisionPath = path.join(runDir, 'decision.json');
@@ -2078,7 +2717,7 @@ function writeDecisionArtifact({ runDir, runId, baseUrl, policyName, preset, fin
   return decisionPath;
 }
 
-function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, policyEval, explanation) {
+function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, policyEval, explanation, siteIntelligence = null, actionHints = []) {
   const structuredExplanation = explanation || buildRealityExplanation({ finalDecision, attemptStats, marketImpact, policyEval });
   const sections = structuredExplanation.sections;
 
@@ -2088,6 +2727,16 @@ function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, poli
   if (sections['Final Verdict'].whyNot && sections['Final Verdict'].whyNot.length > 0) {
     lines.push(`Why not alternatives: ${sections['Final Verdict'].whyNot.join(' ')}`);
   }
+  if (siteIntelligence) {
+    const pct = Math.round((siteIntelligence.confidence || 0) * 100);
+    lines.push(`Site Type: ${siteIntelligence.siteType} (${pct}% confidence)`);
+    const caps = Object.entries(siteIntelligence.capabilities || {})
+      .filter(([_, v]) => v && v.supported)
+      .map(([k]) => k.replace('supports_', ''));
+    if (caps.length > 0) {
+      lines.push(`Detected Capabilities: ${caps.join(', ')}`);
+    }
+  }
   lines.push('');
   lines.push('What Guardian Observed:');
   sections['What Guardian Observed'].details.forEach(d => lines.push(`- ${d}`));
@@ -2095,11 +2744,22 @@ function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, poli
   lines.push('What Guardian Could Not Confirm:');
   sections['What Guardian Could Not Confirm'].details.forEach(d => lines.push(`- ${d}`));
   lines.push('');
+  if (sections['What Was Not Observed'] && sections['What Was Not Observed'].details.length > 0) {
+    lines.push('What Was Not Observed:');
+    sections['What Was Not Observed'].details.forEach(d => lines.push(`- ${d}`));
+    lines.push('');
+  }
   lines.push('Evidence Summary:');
   sections['Evidence Summary'].details.forEach(d => lines.push(`- ${d}`));
   lines.push('');
   lines.push('Limits of This Run:');
   sections['Limits of This Run'].details.forEach(d => lines.push(`- ${d}`));
+  
+  if (actionHints && actionHints.length > 0) {
+    lines.push('');
+    lines.push('Action Hints:');
+    lines.push(formatHintsForSummary(actionHints));
+  }
 
   const summaryPath = path.join(runDir, 'summary.txt');
   fs.writeFileSync(summaryPath, lines.join('\n'));
@@ -2118,6 +2778,16 @@ function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, poli
     if (sections['Final Verdict'].reasons && sections['Final Verdict'].reasons.length > 0) {
       mdLines.push(`- Evidence reasons: ${sections['Final Verdict'].reasons.join(' ')}`);
     }
+    if (siteIntelligence) {
+      const pct = Math.round((siteIntelligence.confidence || 0) * 100);
+      mdLines.push(`- Site type: ${siteIntelligence.siteType} (${pct}% confidence)`);
+      const capsMd = Object.entries(siteIntelligence.capabilities || {})
+        .filter(([_, v]) => v && v.supported)
+        .map(([k]) => k.replace('supports_', ''));
+      if (capsMd.length > 0) {
+        mdLines.push(`- Detected capabilities: ${capsMd.join(', ')}`);
+      }
+    }
 
     mdLines.push('');
     mdLines.push(`## What Guardian Observed`);
@@ -2127,6 +2797,12 @@ function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, poli
     mdLines.push(`## What Guardian Could Not Confirm`);
     sections['What Guardian Could Not Confirm'].details.forEach(d => mdLines.push(`- ${d}`));
 
+    if (sections['What Was Not Observed'] && sections['What Was Not Observed'].details.length > 0) {
+      mdLines.push('');
+      mdLines.push(`## What Was Not Observed`);
+      sections['What Was Not Observed'].details.forEach(d => mdLines.push(`- ${d}`));
+    }
+
     mdLines.push('');
     mdLines.push(`## Evidence Summary`);
     sections['Evidence Summary'].details.forEach(d => mdLines.push(`- ${d}`));
@@ -2135,10 +2811,17 @@ function writeRunSummary(runDir, finalDecision, attemptStats, marketImpact, poli
     mdLines.push(`## Limits of This Run`);
     sections['Limits of This Run'].details.forEach(d => mdLines.push(`- ${d}`));
 
+    if (actionHints && actionHints.length > 0) {
+      mdLines.push('');
+      mdLines.push(`## Action Hints`);
+      mdLines.push('');
+      mdLines.push(formatHintsForSummary(actionHints));
+    }
+
     const summaryMdPath = path.join(runDir, 'summary.md');
     fs.writeFileSync(summaryMdPath, mdLines.join('\n'));
   } catch (_) {}
   return summaryPath;
 }
 
-module.exports = { executeReality, runRealityCLI, computeFlowExitCode, applySafeDefaults, writeDecisionArtifact, computeFinalVerdict };
+module.exports = { executeReality, runRealityCLI, computeFlowExitCode, applySafeDefaults, writeDecisionArtifact, computeFinalVerdict, calculateCoverage };
