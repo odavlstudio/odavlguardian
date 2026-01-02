@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0] - 2026-01-02
+
+### Breaking Changes
+
+- Strict-by-default CI gate enforcement
+- Runtime filesystem isolation
+- Aligned with core v2.0.0 canonical release
+
 ## [1.1.1] - 2025-12-31
 
 ### Version Alignment & Reality Freeze

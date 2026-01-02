@@ -10,18 +10,51 @@ This project follows **semantic versioning**, with a strong emphasis on:
 
 ---
 
+## [2.0.0] — Canonical Stable Release
+
+**Release date:** 2026-01-02  
+**Status:** Stable (breaking changes)
+
+### Breaking Changes
+
+**Strict-by-default CI gate (BREAKING)**
+- Default CI behavior is strict gate mode; advisory requires explicit opt-in.
+- Users relying on advisory mode by default must now explicitly set `--mode=advisory`.
+- Canonical exit codes are locked via contract tests to prevent regressions.
+
+**Runtime filesystem isolation (BREAKING)**
+- Path traversal and external artifact writes are now blocked and contract-enforced.
+- Previously allowed writes to paths outside the project directory will now fail.
+- Enhances security and prevents unintended side effects in build pipelines.
+
+### Features & Improvements
+
+**Supply chain hardening**
+- npm ci / npm audit report 0 vulnerabilities (high/critical) in dependencies.
+- All security advisories resolved.
+
+**Scheduler stabilized**
+- Scheduler quarantine/backoff prevents tight loops and executes only valid entries.
+- Deterministic run execution in high-concurrency environments.
+
+**Contract test coverage**
+- Exit codes (0=READY, 1=FRICTION, 2=DO_NOT_LAUNCH) locked via contract tests.
+- No behavior regressions allowed going forward.
+
+---
+
 ## [1.1.1] — Reality Freeze & Version Alignment Release
 
 **Release date:** 2025-12-31  
-**Status:** Stable (production-ready)
+**Status:** Stable (production-ready)  
+**Archive Status:** Pre-canonical / experimental development history
 
-### What's New
+### Features
 
 **Version Alignment**
 - npm package @odavl/guardian: 1.1.1
 - VS Code extension (odavl-guardian): 1.1.1
 - Documentation aligned with single stable version
-- Establishes 1.1.1 as the canonical stable release
 
 **Watchdog Mode Promotion (Stage 7)**
 - Post-launch monitoring promoted to stable
@@ -30,16 +63,17 @@ This project follows **semantic versioning**, with a strong emphasis on:
 - Detect and alert on degradation automatically
 - Integrated into main test suite
 
-**No Behavior Changes**
+**Behavior**
 - All 1.0.x behavior preserved and stable
 - No feature additions or removals
-- No test logic modifications
 - Reality freeze: all observable behavior locked for stability
+
 
 ## v1.0.0 — First Stable Release
 
 **Release date:** 2025-12-30  
-**Status:** Stable (production-ready)
+**Status:** Stable (production-ready)  
+**Archive Status:** Pre-canonical / experimental development history
 
 - Guardian is now the final decision authority before launch.
 - Introduced Observable Capabilities (VISIBLE = MUST WORK).
@@ -53,7 +87,8 @@ This project follows **semantic versioning**, with a strong emphasis on:
 ## [1.0.1] — Patch Release
 
 **Release date:** 2025-12-31  
-**Status:** Stable (production-ready)
+**Status:** Stable (production-ready)  
+**Archive Status:** Pre-canonical / experimental development history
 
 ### What's New
 
@@ -77,40 +112,11 @@ This project follows **semantic versioning**, with a strong emphasis on:
 
 **No breaking changes** — All v1.0.0 behavior preserved
 
-## [v1.0.0] — Stable Release - Market Reality Testing Engine
-
-**Release date:** 2025-12-29  
-**Status:** Stable (production-ready, community validated)
-
-### 🎯 Purpose
-
-ODAVL Guardian **v1.0.0** is the stable release of the **Market Reality Testing Engine**.
-The engine has been proven through 50+ real-world test runs, comprehensive test coverage,
-and community feedback. This release is ready for production use.
-
-### ✨ Added in Stable Release
-
-- **Repository optimization:** Cleaned 211 MB of test artifacts and build cache
-- **CI/CD stability:** Verified with GitHub Actions, GitLab CI, and Bitbucket Pipelines
-- **VS Code integration:** Full extension support for market reality testing
-- **Complete documentation:** All features documented with examples
-- **Production-ready:** Tested on real websites including GitHub, Wikipedia, etc.
-
-### 🎯 Key Features (Stable)
-
-- Reality-driven browser testing engine
-- Human-centered success evaluation
-- Three-tier verdict system (READY | FRICTION | DO_NOT_LAUNCH)
-- CLI, GitHub Actions, and VS Code extension
-- Comprehensive artifact generation
-- Baseline and regression detection
-
----
-
 ## [v0.3.0] — Beta Release with Working Engine
 
 **Release date:** 2025-12-28  
-**Status:** Beta (engine proven, real-world validation in progress)
+**Status:** Beta (engine proven, real-world validation in progress)  
+**Archive Status:** Pre-canonical / experimental development history
 
 ### 🎯 Purpose
 
