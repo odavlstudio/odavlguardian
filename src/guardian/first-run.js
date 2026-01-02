@@ -45,10 +45,23 @@ function printFirstRunHint() {
   console.log("\nTip: Try 'guardian smoke <url>' for a fast CI-ready check.\n");
 }
 
+function printFirstRunIntroIfNeeded(config, argv) {
+  // Detect quiet mode from config or CLI args
+  const isQuiet = (config && config.output && config.output.quiet) || argv.includes('--quiet');
+  const isCI = process.env.CI === 'true';
+  
+  // Only print welcome on first run and not in CI/quiet mode
+  if (isFirstRun() && !isQuiet && !isCI) {
+    printWelcome();
+    printFirstRunHint();
+  }
+}
+
 module.exports = {
   isFirstRun,
   hasRunBefore,
   markAsRun,
   printWelcome,
-  printFirstRunHint
+  printFirstRunHint,
+  printFirstRunIntroIfNeeded
 };
